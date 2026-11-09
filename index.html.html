@@ -1,0 +1,2575 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>나만의 섬 생활</title>
+<style>
+  :root{
+    --bg:#cdeccf; --panel:#fffaf0; --ink:#5a4632; --accent:#7cc47f; --accent-d:#4f9a53;
+    --gold:#f2b33d; --line:#e6d8bf; --muted:#9a8670;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{background:var(--bg);color:var(--ink);font-family:'Malgun Gothic','Apple SD Gothic Neo',sans-serif;
+    display:flex;justify-content:center;align-items:flex-start;overflow-x:hidden;user-select:none}
+  #wrap{width:100%;max-width:1120px;padding:12px 16px 20px;display:flex;flex-direction:column;gap:10px}
+  #hud{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+  .chip{background:var(--panel);border:3px solid var(--line);border-radius:999px;padding:6px 16px;font-size:18px;font-weight:bold;
+    box-shadow:0 3px 0 var(--line)}
+  #bells b{color:#c98a12}
+  #holding{flex:1;min-width:200px;font-size:15px;color:var(--muted)}
+  #holding.on{color:var(--ink);font-weight:bold}
+  button{font-family:inherit;color:var(--ink);cursor:pointer}
+  .btn{background:var(--panel);border:3px solid var(--line);border-radius:999px;padding:6px 14px;font-size:15px;font-weight:bold;box-shadow:0 3px 0 var(--line)}
+  .btn:active{transform:translateY(2px);box-shadow:0 1px 0 var(--line)}
+  #stage{position:relative;border-radius:18px;overflow:hidden;border:4px solid #fff;box-shadow:0 8px 24px rgba(60,90,50,.25)}
+  canvas#game{display:block;width:100%;height:auto;background:#7cc47f}
+  #toasts{position:absolute;top:12px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;gap:6px;align-items:center;pointer-events:none;width:90%}
+  .toast{background:rgba(255,250,240,.96);border:3px solid var(--line);border-radius:14px;padding:6px 16px;font-size:16px;font-weight:bold;
+    animation:pop .25s ease-out;transition:opacity .4s;text-align:center}
+  @keyframes pop{from{transform:scale(.7);opacity:0}to{transform:scale(1);opacity:1}}
+  #catch{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
+  #catch .card{background:var(--panel);border:4px solid var(--gold);border-radius:24px;padding:18px 34px;text-align:center;
+    animation:pop .3s ease-out;box-shadow:0 8px 0 rgba(0,0,0,.08)}
+  #catch .big{font-size:72px;line-height:1.1}
+  #catch .t{font-size:22px;font-weight:bold}
+  #catch .p{font-size:15px;color:var(--muted)}
+  #invbar{background:var(--panel);border:3px solid var(--line);border-radius:18px;padding:8px;display:flex;flex-wrap:wrap;gap:6px;min-height:68px;align-items:center}
+  #invbar .empty{color:var(--muted);padding:0 10px}
+  .slot{position:relative;width:54px;height:54px;border-radius:14px;border:3px solid var(--line);background:#fff;font-size:28px;
+    display:flex;align-items:center;justify-content:center;padding:0}
+  .slot:hover{border-color:var(--accent)}
+  .slot.sel{border-color:var(--accent-d);background:#e6f6e2;box-shadow:0 0 0 3px #bfe8bc}
+  .slot .n{position:absolute;right:2px;bottom:0;font-size:12px;background:var(--ink);color:#fff;border-radius:8px;padding:0 5px}
+  .slot .tag{position:absolute;left:2px;top:1px;font-size:10px;background:#8bc48a;color:#fff;border-radius:6px;padding:0 4px}
+  .modal{position:fixed;inset:0;background:rgba(60,50,30,.35);display:flex;align-items:center;justify-content:center;padding:16px;z-index:10}
+  .hidden{display:none}
+  .panel{background:var(--panel);border:4px solid var(--line);border-radius:22px;width:100%;max-width:640px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden}
+  .ph{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;font-size:22px;font-weight:bold;border-bottom:3px dashed var(--line)}
+  .ph button{border:none;background:none;font-size:22px}
+  .tabs{display:flex;gap:6px;padding:10px 14px 0;flex-wrap:wrap}
+  .tabs button{flex:1;border:3px solid var(--line);background:#fff;border-radius:12px 12px 0 0;padding:8px;font-size:15px;font-weight:bold}
+  .tabs button.on{background:var(--accent);border-color:var(--accent-d);color:#fff}
+  .pbody{padding:12px 14px 16px;overflow:auto}
+  .row{display:flex;align-items:center;gap:10px;padding:8px 6px;border-bottom:2px dotted var(--line)}
+  .row .e{font-size:30px;width:42px;text-align:center}
+  .row .nm{flex:1;font-size:17px}
+  .row .pr{color:#c98a12;font-size:16px;font-weight:bold;min-width:84px;text-align:right}
+  .row button{border:3px solid var(--accent-d);background:var(--accent);color:#fff;border-radius:10px;padding:4px 10px;font-size:14px;font-weight:bold}
+  .row button:disabled{background:#ddd;border-color:#ccc;color:#999;cursor:not-allowed}
+  .sellall{width:100%;margin:8px 0;border:3px solid #d99a1c;background:var(--gold);color:#fff;border-radius:12px;padding:10px;font-size:17px;font-weight:bold}
+  .help li{margin:6px 0;font-size:16px}
+  .help kbd{background:#fff;border:2px solid var(--line);border-bottom-width:4px;border-radius:6px;padding:0 6px;font-family:inherit}
+  .note{color:var(--muted);font-size:14px}
+  /* 옷장 */
+  .dresstop{display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-bottom:6px}
+  #preview{width:132px;height:132px;background:#e6f6e2;border:3px solid var(--line);border-radius:20px}
+  .opts{flex:1;min-width:220px}
+  .lbl{font-weight:bold;margin:10px 0 6px;font-size:15px}
+  .seg{display:flex;gap:6px}
+  .seg button{flex:1;border:3px solid var(--line);background:#fff;border-radius:12px;padding:8px;font-size:16px;font-weight:bold}
+  .seg button.on{background:var(--accent);border-color:var(--accent-d);color:#fff}
+  .sw{display:flex;gap:8px;flex-wrap:wrap}
+  .sw button{width:32px;height:32px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 2px var(--line);padding:0}
+  .sw button.on{box-shadow:0 0 0 3px var(--accent-d)}
+  .cl{display:flex;gap:6px;flex-wrap:wrap}
+  .cbtn{display:flex;align-items:center;gap:6px;border:3px solid var(--line);background:#fff;border-radius:12px;padding:6px 10px;font-size:14px;font-weight:bold}
+  .cbtn.on{border-color:var(--accent-d);background:#e6f6e2}
+  .cbtn .ic{font-size:20px}
+  /* 미션 · 대화 */
+  #questbar{display:flex;flex-direction:column;gap:4px;background:var(--panel);border:3px solid var(--line);border-radius:18px;padding:8px 14px}
+  #questbar:empty{display:none}
+  #questbar .qh{font-weight:bold;font-size:15px}
+  #questbar .q{font-size:14px;display:flex;gap:8px;align-items:center}
+  #questbar .q b{margin-left:auto;color:#c98a12}
+  #questbar .q.ok b{color:var(--accent-d)}
+  .talkrow{display:flex;gap:14px;align-items:flex-start}
+  #portrait{width:110px;height:110px;flex:none;background:#e6f6e2;border:3px solid var(--line);border-radius:20px}
+  #talkText{flex:1;font-size:17px;line-height:1.6;white-space:pre-line;min-height:110px}
+  #talkBtns{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+  #talkBtns button{flex:1;border:3px solid var(--accent-d);background:var(--accent);color:#fff;border-radius:12px;padding:10px;font-size:16px;font-weight:bold}
+  #talkBtns button.sub{background:#fff;color:var(--ink);border-color:var(--line)}
+  /* 미니게임 · 집 꾸미기 */
+  #miniCv{width:100%;max-width:420px;height:auto;border-radius:16px;border:3px solid var(--line)}
+  .tgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
+  .tcard{border:3px solid var(--line);background:#fff;border-radius:14px;padding:6px;font-size:13px;font-weight:bold;display:flex;flex-direction:column;gap:4px}
+  .tcard.on{border-color:var(--accent-d);background:#e6f6e2}
+  .tcard:disabled{opacity:.5;cursor:not-allowed}
+  .tcard .sw2{height:44px;border-radius:10px;border:2px solid var(--line)}
+  .tcard .pr{color:#c98a12}
+  /* 친구 채팅 */
+  #chat{background:var(--panel);border:3px solid var(--line);border-radius:18px;padding:10px 14px;display:flex;flex-direction:column;gap:8px}
+  #chat.hidden{display:none}
+  .chathead{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:16px}
+  .chatrow{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+  .chatrow input{flex:1;min-width:120px;font-family:inherit;font-size:15px;border:3px solid var(--line);border-radius:12px;padding:7px 10px;color:var(--ink);background:#fff;user-select:text}
+  .chatrow input:focus{outline:none;border-color:var(--accent)}
+  .chatrow button{border:3px solid var(--accent-d);background:var(--accent);color:#fff;border-radius:12px;padding:7px 14px;font-size:15px;font-weight:bold}
+  .chatrow button.sub{background:#fff;color:var(--ink);border-color:var(--line)}
+  .chatrow button:disabled{background:#ddd;border-color:#ccc;color:#999;cursor:not-allowed}
+  #chatInfo span{flex:1;font-size:14px}
+  #chatLog{height:190px;overflow-y:auto;background:#fff;border:3px solid var(--line);border-radius:12px;padding:8px;display:flex;flex-direction:column;gap:6px;user-select:text}
+  #chatLog:empty::before{content:'아직 메시지가 없어요. 친구들과 같은 방 이름으로 들어와서 인사해 보세요!';color:var(--muted);font-size:14px}
+  .cm{display:flex;flex-direction:column;align-items:flex-start;max-width:80%}
+  .cm.me{align-self:flex-end;align-items:flex-end}
+  .cm .who{font-size:12px;color:var(--muted);font-weight:bold}
+  .cm .bub{background:#f1ead9;border-radius:12px;padding:5px 11px;font-size:15px;word-break:break-all}
+  .cm.me .bub{background:#d8f0d4}
+  .cm .tm{font-size:11px;color:var(--muted)}
+  .cm.sys{align-self:center;max-width:100%;font-size:12px;color:var(--muted)}
+  .badge{background:#e25555;color:#fff;border-radius:999px;font-size:12px;padding:0 6px;margin-left:4px}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <div id="hud">
+    <div class="chip" id="bells">🪙 <b id="bellsN">0</b> 벨</div>
+    <div class="chip" id="clock">☀️ 00:00</div>
+    <div id="holding"></div>
+    <button class="btn" id="dressBtn">👕 옷장</button>
+    <button class="btn" id="themeBtn">🎨 집 꾸미기</button>
+    <button class="btn" id="chatBtn">💬 채팅</button>
+    <button class="btn" id="saveBtn">💾 저장 파일</button>
+    <button class="btn" id="muteBtn">🔊</button>
+    <button class="btn" id="helpBtn">❓ 도움말</button>
+  </div>
+  <div id="stage">
+    <canvas id="game"></canvas>
+    <div id="toasts"></div>
+    <div id="catch"></div>
+  </div>
+  <div id="chat" class="hidden">
+    <div class="chathead"><b>💬 친구들과 채팅</b><span id="chatStat" class="note">연결 안 됨</span></div>
+    <div id="chatSetup" class="chatrow">
+      <input id="chatNick" maxlength="12" placeholder="내 이름 (닉네임)" autocomplete="off">
+      <input id="chatRoom" maxlength="30" placeholder="방 이름 (친구들과 똑같이)" autocomplete="off">
+      <button id="chatJoin">입장</button>
+    </div>
+    <div id="chatInfo" class="chatrow hidden">
+      <span>방 <b id="chatRoomN"></b> · 나 <b id="chatNickN"></b></span>
+      <button class="sub" id="chatChange">방·이름 바꾸기</button>
+    </div>
+    <div id="chatLog"></div>
+    <form id="chatForm" class="chatrow">
+      <input id="chatMsg" maxlength="200" placeholder="메시지를 쓰고 Enter (게임으로 돌아가기: Esc)" autocomplete="off" disabled>
+      <button id="chatSendBtn" disabled>보내기</button>
+    </form>
+    <p class="note" style="margin:0">같은 방 이름을 쓴 친구끼리 대화해요. 공개 중계 서버(ntfy.sh)를 거치므로 방 이름을 아는 사람은 누구나 볼 수 있어요 — 개인정보는 쓰지 마세요. 메시지는 12시간 동안 남아요.</p>
+  </div>
+  <div id="questbar"></div>
+  <div id="invbar"></div>
+</div>
+
+<div id="talk" class="modal hidden">
+  <div class="panel">
+    <div class="ph"><span id="talkName"></span><span id="talkHearts" style="font-size:16px"></span></div>
+    <div class="pbody">
+      <div class="talkrow"><canvas id="portrait" width="110" height="110"></canvas><div id="talkText"></div></div>
+      <div id="talkBtns"></div>
+    </div>
+  </div>
+</div>
+
+<div id="shop" class="modal hidden">
+  <div class="panel">
+    <div class="ph"><span>🦝 너굴 상점</span><button data-close>✕</button></div>
+    <div class="tabs">
+      <button data-tab="sell">💰 팔기</button>
+      <button data-tab="furn">🛋️ 가구</button>
+      <button data-tab="cloth">👗 옷</button>
+      <button data-tab="seed">🌱 씨앗</button>
+    </div>
+    <div class="pbody" id="shopBody"></div>
+  </div>
+</div>
+
+<div id="dress" class="modal hidden">
+  <div class="panel">
+    <div class="ph"><span id="dressTitle">👕 옷장</span><button data-close>✕</button></div>
+    <div class="pbody">
+      <div class="dresstop">
+        <canvas id="preview" width="132" height="132"></canvas>
+        <div class="opts">
+          <div class="lbl">성별</div>
+          <div class="seg" id="genderSeg"><button data-gender="boy">👦 남자</button><button data-gender="girl">👧 여자</button></div>
+          <div class="lbl">머리색</div><div class="sw" id="hairSw"></div>
+          <div class="lbl">피부색</div><div class="sw" id="skinSw"></div>
+        </div>
+      </div>
+      <div class="lbl">상의</div><div class="cl" id="topList"></div>
+      <div class="lbl">모자 · 장식</div><div class="cl" id="hatList"></div>
+      <p class="note">새 옷은 너굴 상점 [👗 옷] 탭에서 살 수 있어요. 집 안 거울에서도 옷장을 열 수 있어요.</p>
+      <button class="sellall" data-close>완료</button>
+    </div>
+  </div>
+</div>
+
+<div id="mini" class="modal hidden">
+  <div class="panel" style="max-width:480px">
+    <div class="ph"><span>🎮 과일 받기 게임</span><button data-close>✕</button></div>
+    <div class="pbody" style="text-align:center">
+      <canvas id="miniCv" width="420" height="480"></canvas>
+      <p class="note">←→ 로 바구니를 움직여 떨어지는 과일을 받아요! 🌟 +5점 · 🐝 -3점 · 30초 · 1점당 30벨</p>
+    </div>
+  </div>
+</div>
+
+<div id="theme" class="modal hidden">
+  <div class="panel">
+    <div class="ph"><span>🎨 집 꾸미기</span><button data-close>✕</button></div>
+    <div class="pbody">
+      <div class="lbl">🧱 벽지</div><div class="tgrid" id="wallList"></div>
+      <div class="lbl">🟫 바닥</div><div class="tgrid" id="floorList"></div>
+      <p class="note">처음 고를 때만 벨이 들고, 한 번 산 벽지·바닥은 언제든 무료로 바꿀 수 있어요.</p>
+    </div>
+  </div>
+</div>
+
+<div id="saveM" class="modal hidden">
+  <div class="panel" style="max-width:480px">
+    <div class="ph"><span>💾 저장 파일</span><button data-close>✕</button></div>
+    <div class="pbody">
+      <p style="margin-top:0">다른 컴퓨터에서 이어서 하려면:</p>
+      <ol style="line-height:1.8;margin-top:0">
+        <li>여기서 <b>[저장 파일 내려받기]</b>를 눌러 <b>.json</b> 파일을 받아요</li>
+        <li>그 파일을 USB·메일 등으로 옮겨요 (게임 파일도 함께, 또는 깃허브 게임 주소로 접속)</li>
+        <li>다른 컴퓨터·다른 주소에서 게임을 열고 <b>[저장 파일 불러오기]</b>로 그 파일을 골라요</li>
+      </ol>
+      <button class="sellall" id="exportBtn">⬇️ 저장 파일 내려받기</button>
+      <button class="sellall" id="importBtn" style="background:var(--accent);border-color:var(--accent-d)">📂 저장 파일 불러오기</button>
+      <input type="file" id="importFile" accept=".json,application/json" hidden>
+      <p class="note">불러오면 지금 이 컴퓨터의 진행 상황은 저장 파일 내용으로 바뀌어요.</p>
+    </div>
+  </div>
+</div>
+
+<div id="help" class="modal hidden">
+  <div class="panel help">
+    <div class="ph"><span>🏝️ 나만의 섬 생활</span><button data-close>✕</button></div>
+    <div class="pbody">
+      <ul>
+        <li><kbd>←↑↓→</kbd> / <kbd>WASD</kbd> 이동</li>
+        <li><kbd>Space</kbd> 앞에 있는 것과 상호작용
+          <div class="note">나무 → 흔들기 · 물 → 낚싯대 던지기 · 너구리/상점 → 사고팔기 · 새싹 → 물 주기 · 거울 → 옷장</div></li>
+        <li>🦋 풀밭의 곤충 앞에서 <kbd>Space</kbd> → 곤충 채집</li>
+        <li>✦ 땅에 반짝이는 X 표시 앞에서 <kbd>Space</kbd> → 땅 파기 (화석·보석·벨 주머니!)</li>
+        <li>🎮 오락기 앞에서 <kbd>Space</kbd> → 과일 받기 미니게임</li>
+        <li>🎨 <kbd>T</kbd> 또는 [집 꾸미기] 버튼 → 집 벽지·바닥 테마 바꾸기</li>
+        <li>🤍 치이카와 · 🐱 하치와레 · 🐰 우사기 · 🐿️ 모몽가 · 🦦 랏코에게 <kbd>Space</kbd>로 말을 걸면 미션을 줘요. 머리 위 <b>!</b> = 새 미션, <b>★</b> = 완료 가능</li>
+        <li>🏠 집 문 앞에서 <kbd>↑</kbd> 또는 <kbd>Space</kbd> → 집에 들어가기, 집 안 아래쪽 문으로 나가기</li>
+        <li>🎣 낚시: 찌가 <b>쑥 가라앉고 "!"</b>가 뜨는 순간 <kbd>Space</kbd>! 너무 빨라도, 늦어도 도망가요</li>
+        <li>🌊 바다와 연못에 사는 물고기가 달라요</li>
+        <li>🌳 나무는 흔든 뒤 30초가 지나야 다시 뭔가 떨어져요 (가끔 벌집 주의!)</li>
+        <li>🪑 아래 아이템 칸에서 가구·씨앗을 고르고 빈 바닥을 보며 <kbd>Space</kbd> → 설치 (섬, 집 안 모두 가능)</li>
+        <li>📐 가구는 실제 크기만큼 칸을 차지해요 (소파 3칸, 침대 2×3칸…). 바라보는 방향으로 펼쳐지고, 빨간 칸이 보이면 자리가 부족한 거예요. 러그는 밟고 다닐 수 있고 그 위에 가구를 놓을 수 있어요</li>
+        <li><kbd>R</kbd> 앞에 있는 가구·꽃 회수 &nbsp; <kbd>Esc</kbd> 손에 든 것 내려놓기</li>
+        <li>🌷 씨앗은 물을 줄 때마다 한 단계씩 자라요 (씨앗 → 새싹 → 봉오리 → 꽃)</li>
+        <li><kbd>C</kbd> 옷장(성별·머리·옷 바꾸기) &nbsp; <kbd>H</kbd> 도움말 &nbsp; <kbd>M</kbd> 소리</li>
+        <li>💬 <kbd>/</kbd> 또는 [채팅] 버튼 → 친구들과 채팅 (같은 방 이름으로 입장) · 채팅 중 <kbd>Esc</kbd> → 게임으로</li>
+      </ul>
+      <p class="note">진행 상황은 이 브라우저에 자동 저장돼요. 다른 컴퓨터로 옮기려면 [💾 저장 파일] 버튼을 쓰세요.</p>
+      <button class="btn" id="resetBtn">🗑️ 처음부터 다시 하기</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const TS = 40, W = 28, H = 18;
+const cv = document.getElementById('game'), ctx = cv.getContext('2d');
+cv.width = W * TS; cv.height = H * TS;
+const EMOJI = '"Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",sans-serif';
+const FONT = '"Malgun Gothic","Apple SD Gothic Neo",sans-serif';
+
+// ---------- 데이터 ----------
+const FISH = [
+  {id:'sardine', name:'정어리', emoji:'🐟', price:100,  src:'sea',  w:30},
+  {id:'mackerel',name:'고등어', emoji:'🐟', price:150,  src:'sea',  w:25},
+  {id:'seabream',name:'참돔',   emoji:'🐠', price:400,  src:'sea',  w:14},
+  {id:'puffer',  name:'복어',   emoji:'🐡', price:250,  src:'sea',  w:12},
+  {id:'squid',   name:'오징어', emoji:'🦑', price:500,  src:'sea',  w:8},
+  {id:'octopus', name:'문어',   emoji:'🐙', price:800,  src:'sea',  w:5},
+  {id:'shark',   name:'상어',   emoji:'🦈', price:5000, src:'sea',  w:1.5},
+  {id:'crucian', name:'붕어',   emoji:'🐟', price:120,  src:'pond', w:35},
+  {id:'carp',    name:'잉어',   emoji:'🐟', price:300,  src:'pond', w:20},
+  {id:'crawfish',name:'가재',   emoji:'🦞', price:200,  src:'pond', w:15},
+  {id:'frog',    name:'개구리', emoji:'🐸', price:120,  src:'pond', w:10},
+  {id:'catfish', name:'메기',   emoji:'🐟', price:800,  src:'pond', w:6},
+  {id:'goldfish',name:'금붕어', emoji:'🐠', price:1300, src:'pond', w:3},
+  {id:'boot',    name:'낡은 장화', emoji:'👢', price:10, src:'both', w:6},
+];
+const FLOWERS = [
+  {id:'daisy',    name:'데이지',     emoji:'🌼', seed:80,  sell:100, color:'#fff3a0'},
+  {id:'tulip',    name:'튤립',       emoji:'🌷', seed:120, sell:150, color:'#ff7aa8'},
+  {id:'sunflower',name:'해바라기',   emoji:'🌻', seed:150, sell:180, color:'#ffcc00'},
+  {id:'rose',     name:'장미',       emoji:'🌹', seed:200, sell:250, color:'#e8344a'},
+  {id:'hibiscus', name:'히비스커스', emoji:'🌺', seed:250, sell:300, color:'#ff5a72'},
+];
+// [id, 이름, 아이콘, 가격, 가로칸, 세로칸, 바닥깔개(위로 걸어다닐 수 있음)]
+const FURN = [
+  ['plant','화분','🪴',600,1,1], ['chair','나무 의자','🪑',800,1,1], ['mailbox','우체통','📮',1000,1,1],
+  ['lantern','등불','🏮',1200,1,1], ['bear','곰인형','🧸',1500,1,1], ['clock','괘종시계','🕰️',1800,1,1],
+  ['guitar','기타','🎸',2200,1,1], ['sofa','소파','🛋️',2500,3,1], ['tv','텔레비전','📺',3000,2,1],
+  ['xmas','크리스마스 트리','🎄',3500,2,2], ['bed','침대','🛏️',4000,2,3], ['tent','텐트','⛺',5000,3,2],
+  ['piano','피아노','🎹',6000,2,1], ['fountain','분수','⛲',9800,3,3],
+  ['basket','피크닉 바구니','🧺',700,1,1], ['candle','촛대','🕯️',900,1,1], ['gift','선물 상자','🎁',1000,1,1],
+  ['lamp','스탠드 조명','💡',1100,1,1], ['books','책장','📚',1400,2,1], ['radio','라디오','📻',1600,1,1],
+  ['mirror','전신 거울','🪞',1900,1,1], ['frame','그림 이젤','🖼️',2000,1,1], ['snowman','눈사람','⛄',2000,1,1],
+  ['vase','고대 항아리','🏺',2600,1,1], ['parasol','파라솔 테이블','⛱️',2800,2,2], ['bike','자전거','🚲',3800,2,1],
+  ['disco','미러볼','🪩',4200,1,1], ['bath','욕조','🛁',5500,3,2], ['moai','모아이 석상','🗿',7700,2,2],
+  ['carousel','회전목마','🎠',15000,4,4],
+  ['rug','네모 러그','🟥',1200,3,2,1], ['rug_round','동그란 러그','🔵',1500,3,3,1],
+  ['table','식탁','🍽️',2400,2,2], ['fridge','냉장고','🧊',2800,1,1], ['kitchen','싱크대','🚰',3200,2,1],
+  ['cabinet','수납장','🗄️',2000,2,1], ['desk','책상','💻',2600,2,1], ['plant_big','큰 관엽식물','🌿',1300,1,1],
+];
+const CLOTHES = [
+  {id:'tee_blue', name:'파란 티셔츠',  emoji:'👕', slot:'top', style:'plain',   c1:'#5b8def', price:0},
+  {id:'tee_pink', name:'분홍 티셔츠',  emoji:'👕', slot:'top', style:'plain',   c1:'#ff8fb1', price:0},
+  {id:'stripe',   name:'줄무늬 티셔츠', emoji:'👕', slot:'top', style:'stripe',  c1:'#ffffff', c2:'#4a78d6', price:900},
+  {id:'dots',     name:'물방울 셔츠',  emoji:'👚', slot:'top', style:'dots',    c1:'#ffd84d', c2:'#ffffff', price:1200},
+  {id:'hoodie',   name:'빨간 후드티',  emoji:'🧥', slot:'top', style:'hood',    c1:'#e85a4f', c2:'#c4443a', price:1500},
+  {id:'overall',  name:'멜빵바지',     emoji:'👖', slot:'top', style:'overall', c1:'#fff7e0', c2:'#5d86c9', price:1800},
+  {id:'dress',    name:'노란 원피스',  emoji:'👗', slot:'top', style:'dress',   c1:'#ffd84d', c2:'#f29f3d', price:2400},
+  {id:'sailor',   name:'세일러복',     emoji:'🎽', slot:'top', style:'sailor',  c1:'#ffffff', c2:'#2f4f9a', price:2800},
+  {id:'hanbok',   name:'색동 한복',    emoji:'👘', slot:'top', style:'hanbok',  c1:'#ffe9a8', c2:'#ff6f91', price:4800},
+  {id:'h_flower', name:'꽃 머리핀',    emoji:'🌸', slot:'hat', style:'flower',  price:600},
+  {id:'h_straw',  name:'밀짚모자',     emoji:'👒', slot:'hat', style:'straw',   price:700},
+  {id:'h_ribbon', name:'큰 리본',      emoji:'🎀', slot:'hat', style:'ribbon',  c1:'#ff6f91', price:800},
+  {id:'h_cap',    name:'야구모자',     emoji:'🧢', slot:'hat', style:'cap',     c1:'#e85a4f', price:900},
+  {id:'h_beanie', name:'털모자',       emoji:'🧶', slot:'hat', style:'beanie',  c1:'#7cc47f', price:1100},
+  {id:'h_crown',  name:'왕관',         emoji:'👑', slot:'hat', style:'crown',   price:12000},
+];
+const CLOTH = Object.fromEntries(CLOTHES.map(c => [c.id, c]));
+
+// 친구들과 미션
+// type: give(물건 건네기, '@fish'는 아무 물고기) / count(행동 횟수) / bells(벨 모아서 보여주기)
+const FRIENDS = [
+  {id:'chiikawa', name:'치이카와', icon:'🤍', home:[10, 8],
+    greet:['……!! (조그맣게 손을 흔든다)', '(쭈뼛쭈뼛) 저, 저기…', '…헤헤 (수줍게 웃는다)'],
+    wait:'(기대하는 눈으로 바라본다) …아직이야?', thanks:'(울먹울먹) 고, 고마워…!! 정말 고마워…!',
+    quests:[
+      {type:'give', item:'apple', n:3, goal:'🍎 사과 3개 가져다주기', text:'배가 고픈데… 사과 3개만 줄 수 있어…?', reward:{bells:600, item:'seed_daisy', cnt:2}},
+      {type:'count', stat:'plant', n:3, goal:'🌱 씨앗 3개 심기', text:'섬에 꽃이 많아졌으면 좋겠어… 씨앗 3개 심어줄래?', reward:{bells:800}},
+      {type:'count', stat:'water', n:5, goal:'💧 꽃에 물 5번 주기', text:'꽃들이 목말라 보여… 물을 5번 줘볼래…?', reward:{bells:900, cloth:'h_flower'}},
+      {type:'give', item:'fl_tulip', n:1, goal:'🌷 튤립 1송이 가져다주기', text:'튤립… 한 송이만 갖고 싶어. 키워서 줄 수 있어…?', reward:{bells:1200, item:'fu_bear', cnt:1}},
+      {type:'give', item:'@fish', n:2, goal:'🐟 아무 물고기 2마리 가져다주기', text:'오늘 저녁은 생선구이가 먹고 싶어… 물고기 2마리!', reward:{bells:900}},
+    ]},
+  {id:'hachiware', name:'하치와레', icon:'🐱', home:[17, 8],
+    greet:['안녕~! 오늘도 날씨 진짜 좋다!', '앗, 왔구나! 반가워~', '난 기타 치는 게 좋아~ 🎸'],
+    wait:'괜찮아괜찮아~ 천천히 해도 돼!', thanks:'우와~ 진짜 고마워! 너 최고야!!',
+    quests:[
+      {type:'count', stat:'catch', n:3, goal:'🎣 물고기 3마리 낚기', text:'낚시 대결하자! 물고기 3마리 낚아보는 거야~', reward:{bells:900}},
+      {type:'count', stat:'place', n:2, goal:'🪑 가구 2개 설치하기', text:'섬을 꾸미면 더 즐거울 것 같아! 가구 2개 놓아볼래?', reward:{bells:1000, item:'fu_guitar', cnt:1}},
+      {type:'give', item:'crucian', n:1, goal:'🐟 붕어 1마리 가져다주기', text:'연못에 사는 붕어를 한번 보고 싶어!', reward:{bells:700}},
+      {type:'give', item:'fl_sunflower', n:1, goal:'🌻 해바라기 1송이 가져다주기', text:'해바라기처럼 밝게 웃고 싶어~ 한 송이 줄래?', reward:{bells:1300, cloth:'stripe'}},
+      {type:'bells', n:5000, goal:'💰 5,000벨 모아서 보여주기', text:'부자가 된 모습 보여줘! 5,000벨 모으면 와~', reward:{bells:1500}},
+    ]},
+  {id:'usagi', name:'우사기', icon:'🐰', home:[15, 11],
+    greet:['우라!!', '야하~!!', '하아?! (갑자기 점프한다)'],
+    wait:'우라? 우라라?!', thanks:'우라~~!!! (신나서 빙글빙글 뛴다)',
+    quests:[
+      {type:'count', stat:'shake', n:5, goal:'🌳 나무 5번 흔들기', text:'우라! (나무를 가리키며 흔드는 시늉을 한다) → 나무 5번 흔들기!', reward:{bells:700}},
+      {type:'give', item:'mackerel', n:2, goal:'🐟 고등어 2마리 가져다주기', text:'야하! (바다를 가리킨다) → 고등어 2마리!', reward:{bells:900}},
+      {type:'give', item:'apple', n:5, goal:'🍎 사과 5개 가져다주기', text:'우라라~ (사과를 한가득 먹는 시늉) → 사과 5개!', reward:{bells:1000, cloth:'h_cap'}},
+      {type:'count', stat:'catch', n:5, goal:'🎣 물고기 5마리 낚기', text:'하아?! (낚싯대를 휘두른다) → 물고기 5마리 낚기!', reward:{bells:1500}},
+      {type:'give', item:'squid', n:1, goal:'🦑 오징어 1마리 가져다주기', text:'우라!!! (오징어 흉내) → 바다에서 오징어 1마리!', reward:{bells:2000, item:'fu_tent', cnt:1}},
+    ]},
+  {id:'momonga', name:'모몽가', icon:'🐿️', home:[21, 9],
+    greet:['나 귀엽지? 귀엽지?! 칭찬해줘!', '흥! 나한테 줄 거 없어?', '(반짝반짝 눈빛 공격)'],
+    wait:'아직이야?! 빨리빨리~!', thanks:'에헤헤~ 역시 난 사랑받는 존재야! …고, 고마워!',
+    quests:[
+      {type:'count', stat:'bug', n:3, goal:'🦋 곤충 3마리 잡기', text:'반짝반짝 곤충이 보고 싶어! 곤충 3마리 잡아와~', reward:{bells:900, item:'fu_gift', cnt:1}},
+      {type:'give', item:'fl_rose', n:1, goal:'🌹 장미 1송이 가져다주기', text:'귀여운 나한테는 장미가 어울려! 장미 한 송이 줘!', reward:{bells:1300, cloth:'h_ribbon'}},
+      {type:'count', stat:'mini', n:1, goal:'🎮 오락기 게임 1판 하기', text:'오락기에서 과일 받기 게임 해봐! 내가 응원해줄게~', reward:{bells:800}},
+      {type:'give', item:'butterfly', n:2, goal:'🦋 나비 2마리 가져다주기', text:'나비랑 같이 날고 싶어! 나비 2마리!', reward:{bells:1000, item:'fu_disco', cnt:1}},
+      {type:'give', item:'@bug', n:4, goal:'🐞 아무 곤충 4마리 가져다주기', text:'곤충 박사가 될 거야! 아무 곤충이나 4마리!', reward:{bells:1400}},
+    ]},
+  {id:'rakko', name:'랏코', icon:'🦦', home:[5, 12],
+    greet:['…수련 중이다.', '오, 왔나. 오늘도 좋은 바람이군.', '(검을 닦고 있다)'],
+    wait:'서두를 것 없다. 천천히 해라.', thanks:'훌륭하다. 너의 실력을 인정하지.',
+    quests:[
+      {type:'count', stat:'dig', n:3, goal:'⛏️ 반짝이는 땅 3번 파기', text:'땅속에 보물이 잠들어 있다. 반짝이는 곳을 3번 파 봐라.', reward:{bells:1000}},
+      {type:'give', item:'fossil', n:1, goal:'🦴 화석 1개 가져다주기', text:'오래된 화석을 연구하고 싶군. 하나 구해다 줄 수 있나?', reward:{bells:1500, item:'fu_moai', cnt:1}},
+      {type:'count', stat:'catch', n:4, goal:'🎣 물고기 4마리 낚기', text:'낚시는 마음 수련에 좋지. 물고기 4마리를 낚아라.', reward:{bells:1200}},
+      {type:'give', item:'beetle', n:1, goal:'🪲 장수풍뎅이 1마리 가져다주기', text:'강한 장수풍뎅이를 보고 싶다. 찾아와 줄 수 있겠나.', reward:{bells:2000, cloth:'sailor'}},
+      {type:'bells', n:10000, goal:'💰 10,000벨 모아서 보여주기', text:'진정한 강자는 저축도 한다. 10,000벨을 모아 보여다오.', reward:{bells:2500, item:'fu_carousel', cnt:1}},
+    ]},
+];
+const FRIEND = Object.fromEntries(FRIENDS.map(f => [f.id, f]));
+const HAIR_COLORS = ['#7a4a2a', '#2b2118', '#e0b04a', '#d9634a', '#8a6bd1', '#e8e2d8'];
+const SKINS = ['#ffe0c4', '#f5c99b', '#d9a272', '#a8704a'];
+
+const ITEMS = {};
+FISH.forEach(f => ITEMS[f.id] = {name:f.name, emoji:f.emoji, type:f.id === 'boot' ? 'junk' : 'fish', sell:f.price});
+ITEMS.apple = {name:'사과', emoji:'🍎', type:'fruit', sell:100};
+FLOWERS.forEach(f => {
+  ITEMS['seed_' + f.id] = {name:f.name + ' 씨앗', emoji:f.emoji, type:'seed', flower:f.id, buy:f.seed, sell:Math.floor(f.seed / 2)};
+  ITEMS['fl_' + f.id] = {name:f.name, emoji:f.emoji, type:'flower', flower:f.id, sell:f.sell};
+});
+FURN.forEach(([id, name, emoji, buy, w, h, flat]) => ITEMS['fu_' + id] = {name, emoji, type:'furn', buy, sell:Math.floor(buy / 4), w, h, flat:!!flat});
+const BUGS = [
+  {id:'butterfly',name:'나비',      emoji:'🦋', price:160,  w:30, fly:true},
+  {id:'ladybug',  name:'무당벌레',  emoji:'🐞', price:200,  w:22},
+  {id:'ant',      name:'개미',      emoji:'🐜', price:80,   w:18},
+  {id:'cricket',  name:'귀뚜라미',  emoji:'🦗', price:250,  w:14},
+  {id:'snail',    name:'달팽이',    emoji:'🐌', price:250,  w:10},
+  {id:'spider',   name:'거미',      emoji:'🕷️', price:400,  w:7},
+  {id:'beetle',   name:'장수풍뎅이', emoji:'🪲', price:1500, w:4},
+  {id:'scorpion', name:'전갈',      emoji:'🦂', price:3000, w:1.5},
+];
+BUGS.forEach(b => ITEMS[b.id] = {name:b.name, emoji:b.emoji, type:'bug', sell:b.price});
+ITEMS.stone  = {name:'돌멩이',       emoji:'🪨', type:'junk',     sell:20};
+ITEMS.shell  = {name:'조개껍데기',   emoji:'🐚', type:'treasure', sell:150};
+ITEMS.fossil = {name:'화석',         emoji:'🦴', type:'treasure', sell:900};
+ITEMS.gem    = {name:'보석',         emoji:'💎', type:'treasure', sell:2000};
+ITEMS.dino   = {name:'공룡 화석',    emoji:'🦖', type:'treasure', sell:3500};
+ITEMS.letter = {name:'편지',         emoji:'💌', type:'quest',    sell:0};
+const DIG_TABLE = [['stone',20], ['shell',18], ['$',14], ['fossil',16], ['gem',6], ['dino',3], ['fu_vase',3]];
+const QUICK = ['fish', 'fruit', 'junk', 'flower', 'bug', 'treasure'];
+
+// 집 테마
+const WALLS = [
+  {id:'cream',  name:'크림 줄무늬', price:0,    base:'#fbe7c6', c2:'#f5d9ac', pat:'stripe'},
+  {id:'sky',    name:'하늘 구름',   price:1500, base:'#cfeeff', c2:'#ffffff', pat:'cloud'},
+  {id:'mint',   name:'민트 체크',   price:1600, base:'#dff5ee', c2:'#b9e6d7', pat:'check'},
+  {id:'heart',  name:'분홍 하트',   price:1800, base:'#ffe0ea', c2:'#ff9ab8', pat:'heart'},
+  {id:'forest', name:'숲속 나뭇잎', price:2000, base:'#d7efcf', c2:'#8cc77f', pat:'leaf'},
+  {id:'log',    name:'통나무 판넬', price:2200, base:'#c9935e', c2:'#a87645', pat:'plank'},
+  {id:'night',  name:'밤하늘 별',   price:3000, base:'#2f3b6e', c2:'#ffe27a', pat:'star'},
+];
+const FLOORS = [
+  {id:'wood',   name:'원목 마루',  price:0,    c1:'#d9a66b', c2:'#d39f63', pat:'plank'},
+  {id:'tile',   name:'체크 타일',  price:1500, c1:'#ffffff', c2:'#e9d3a5', pat:'check'},
+  {id:'pink',   name:'분홍 카펫',  price:1800, c1:'#ffc9d6', c2:'#ff9fb8', pat:'carpet'},
+  {id:'grass',  name:'잔디 바닥',  price:2000, c1:'#8fd388', c2:'#86cc7f', pat:'grass'},
+  {id:'tatami', name:'다다미',     price:2400, c1:'#d8d39a', c2:'#b5ae6c', pat:'tatami'},
+  {id:'marble', name:'대리석',     price:3500, c1:'#f2f0ec', c2:'#cfcac0', pat:'marble'},
+  {id:'space',  name:'우주 바닥',  price:5000, c1:'#1d2347', c2:'#2a3266', pat:'stars'},
+];
+const WALL = Object.fromEntries(WALLS.map(t => [t.id, t])), FLOOR = Object.fromEntries(FLOORS.map(t => [t.id, t]));
+const FLOWER_BY_ID = Object.fromEntries(FLOWERS.map(f => [f.id, f]));
+const PLACEABLE = ['furn', 'seed', 'flower'];
+
+// ---------- 지도 ----------
+const isPond = (x, y) => x >= 20 && x <= 23 && y >= 4 && y <= 6 && !((x === 20 || x === 23) && (y === 4 || y === 6));
+const ROOM = {x0:2, y0:3, x1:25, y1:15};
+const ROOM_DOOR = [13, 16];   // 집 안 출구
+const ROOM_ENTRY = [13, 15];  // 들어오면 서는 자리
+const MIRROR = [2, 3];
+const HOME_DOOR = [13, 2];    // 섬에서 본 집 문
+const HOME_FRONT = [13, 3];   // 집 문 앞
+function tileAt(x, y, scene = S.scene) {
+  if (scene === 'home') {
+    if (x >= ROOM.x0 && x <= ROOM.x1 && y >= ROOM.y0 && y <= ROOM.y1) return 'floor';
+    if (x === ROOM_DOOR[0] && y === ROOM_DOOR[1]) return 'door';
+    return 'void';
+  }
+  if (y >= 15) return 'sea';
+  if (isPond(x, y)) return 'pond';
+  if (y === 14) return 'sand';
+  if (y === 3 && x >= 4 && x <= 13) return 'path';
+  return 'grass';
+}
+const isWater = t => t === 'sea' || t === 'pond';
+const BUILDINGS = [
+  {id:'shop', x:3,  y:1, w:3, h:2, roof:'#6dbb73', roofD:'#4f9a53', wall:'#fff1d6', sign:'너굴 상점'},
+  {id:'home', x:12, y:1, w:3, h:2, roof:'#e9776b', roofD:'#c95a4f', wall:'#fff6e8', sign:'나의 집'},
+];
+const NPC = {x:6, y:2};
+const ARCADE = [18, 2];
+const TREES = [[1,6],[2,9],[1,12],[7,7],[8,11],[25,2],[26,6],[24,10],[18,11],[26,12],[16,1],[20,1],[9,1],[3,6],[11,12],[22,12]];
+const treeSet = new Set(TREES.map(([x, y]) => x + ',' + y));
+const TREE_CD = 30000, GROW_MS = 12000;
+const DIRS = {up:[0,-1], down:[0,1], left:[-1,0], right:[1,0]};
+const same = (x, y, p) => x === p[0] && y === p[1];
+// 지형·건물·나무처럼 움직이지 않는 것만 보고 물건을 놓을 수 있는 칸인지 확인
+function staticFree(scene, x, y) {
+  if (x < 0 || y < 0 || x >= W || y >= H) return false;
+  const t = tileAt(x, y, scene);
+  if (scene === 'home') return t === 'floor' && !same(x, y, MIRROR) && !same(x, y, ROOM_ENTRY);
+  return !isWater(t) && !BUILDINGS.some(b => x >= b.x && x < b.x + b.w && y >= b.y && y < b.y + b.h) && !treeSet.has(x + ',' + y)
+    && !(x === NPC.x && y === NPC.y) && !same(x, y, ARCADE) && !same(x, y, HOME_FRONT);
+}
+// 가구가 차지하는 칸 수 (꽃은 1칸)
+const fpOf = p => p.kind === 'furn' ? ITEMS[p.id] : {w:1, h:1, flat:false};
+const covers = (p, x, y) => { const f = fpOf(p); return x >= p.x && x < p.x + f.w && y >= p.y && y < p.y + f.h; };
+const placedIn = (scene, x, y, flat) => S.placed.find(p => p.s === scene && covers(p, x, y) && fpOf(p).flat === flat);
+
+// ---------- 상태 ----------
+const SAVE_KEY = 'island-life-save-v1';
+function freshState() {
+  return {v:1, fp2:true, bells:500, inv:{seed_tulip:3, fu_chair:1, fu_rug:1}, placed:[], drops:[], trees:{}, x:8, y:5, dir:'down', holding:null,
+    scene:'island', char:null, closet:['tee_blue', 'tee_pink'], wear:{top:'tee_blue', hat:null}};
+}
+let S, firstRun = false;
+try { S = JSON.parse(localStorage.getItem(SAVE_KEY)); } catch (e) { S = null; }
+if (!S || S.v !== 1) { S = freshState(); firstRun = true; }
+// 예전 저장 데이터 보정 (처음부터 다시 하기에도 사용)
+function normalize() {
+  S.scene = S.scene || 'island';
+  S.closet = S.closet || ['tee_blue', 'tee_pink'];
+  S.wear = S.wear || {top:'tee_blue', hat:null};
+  S.placed.forEach(p => p.s = p.s || 'island');
+  S.stats = Object.assign({shake:0, catch:0, water:0, place:0, plant:0, bug:0, dig:0, mini:0}, S.stats);
+  S.theme = S.theme || {wall:'cream', floor:'wood'};
+  S.themes = S.themes || ['cream', 'wood'];
+  S.digs = S.digs || [];
+  S.best = S.best || 0;
+  S.friends = S.friends || {};
+  FRIENDS.forEach(f => S.friends[f.id] = S.friends[f.id] || {q:0, active:false, base:0, hearts:0});
+  S.placed = S.placed.filter(p => p.kind !== 'furn' || ITEMS[p.id]);
+  if (!S.fp2) fitOldFurniture();
+}
+// 가구가 1칸이던 예전 저장: 실제 크기로 커진 가구를 그 자리 근처에 맞춰 놓고, 자리가 없으면 주머니로 돌려준다
+let fpReturned = 0, fpUpgraded = false;
+function fitOldFurniture() {
+  S.fp2 = true; fpUpgraded = true;
+  const kept = S.placed.filter(p => p.kind !== 'furn');
+  const taken = (s, x, y) => kept.some(q => q.s === s && covers(q, x, y));
+  S.placed.filter(p => p.kind === 'furn').forEach(p => {
+    const {w, h} = ITEMS[p.id];
+    for (let dy = 0; dy < h; dy++) for (let dx = 0; dx < w; dx++) {
+      const x = p.x - dx, y = p.y - dy;
+      let ok = true;
+      for (let yy = y; yy < y + h && ok; yy++) for (let xx = x; xx < x + w && ok; xx++) ok = staticFree(p.s, xx, yy) && !taken(p.s, xx, yy);
+      if (ok) { kept.push(Object.assign(p, {x, y})); return; }
+    }
+    S.inv[p.id] = (S.inv[p.id] || 0) + 1; fpReturned++;
+  });
+  S.placed = kept;
+  S.digs = S.digs.filter(d => !kept.some(q => q.s === 'island' && covers(q, d.x, d.y)));
+  S.inv.fu_rug = (S.inv.fu_rug || 0) + 1;
+}
+function fpNotice() {
+  if (!fpUpgraded) return;
+  fpUpgraded = false;
+  toast('🏠 집이 3배 넓어지고 가구가 실제 크기로 바뀌었어요! 선물로 러그를 드려요');
+  if (fpReturned) toast(`자리가 모자란 가구 ${fpReturned}개는 주머니에 돌려놨어요`);
+  fpReturned = 0;
+}
+normalize();
+const needCreate = !S.char;
+if (!S.char) S.char = {gender:'boy', hair:HAIR_COLORS[0], skin:SKINS[0]};
+
+function save() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(Object.assign(S, {x:P.x, y:P.y, dir:P.dir}))); } catch (e) {} }
+
+const P = {x:S.x, y:S.y, tx:S.x, ty:S.y, dir:S.dir, moving:false, t:0, walk:0};
+let fish = {state:'idle'};
+const shakeAnim = {}, sparkles = [];
+let beeUntil = 0, muted = false;
+
+const onIsland = () => S.scene === 'island';
+const buildingAt = (x, y) => onIsland() && BUILDINGS.find(b => x >= b.x && x < b.x + b.w && y >= b.y && y < b.y + b.h);
+const solidAt = (x, y) => placedIn(S.scene, x, y, false);
+const placedAt = (x, y) => solidAt(x, y) || placedIn(S.scene, x, y, true);  // 러그 위에 놓인 가구를 먼저
+const dropAt = (x, y) => onIsland() && S.drops.find(d => d.x === x && d.y === y);
+const isTree = (x, y) => onIsland() && treeSet.has(x + ',' + y);
+const isNPC = (x, y) => onIsland() && x === NPC.x && y === NPC.y;
+const isMirror = (x, y) => !onIsland() && same(x, y, MIRROR);
+const isArcade = (x, y) => onIsland() && same(x, y, ARCADE);
+const digAt = (x, y) => onIsland() && S.digs.find(d => d.x === x && d.y === y);
+let bugs = [];
+const bugAt = (x, y) => onIsland() && bugs.find(b => b.x === x && b.y === y);
+const FR = FRIENDS.map(f => ({id:f.id, home:f.home, x:f.home[0], y:f.home[1], tx:f.home[0], ty:f.home[1], moving:false, t:0, next:0}));
+const friendAt = (x, y) => onIsland() && FR.find(f => (f.x === x && f.y === y) || (f.moving && f.tx === x && f.ty === y));
+const inBounds = (x, y) => x >= 0 && y >= 0 && x < W && y < H;
+function blocked(x, y) {
+  if (!inBounds(x, y)) return true;
+  const t = tileAt(x, y);
+  return t === 'void' || isWater(t) || !!buildingAt(x, y) || isTree(x, y) || isNPC(x, y) || isMirror(x, y) || isArcade(x, y) || !!friendAt(x, y) || !!solidAt(x, y);
+}
+// 바라보는 칸에서 바라보는 방향으로 가구 크기만큼 펼친 자리
+function fpRect(id, fx, fy, dir) {
+  const {w, h} = ITEMS[id].type === 'furn' ? ITEMS[id] : {w:1, h:1};
+  let x = fx - Math.floor((w - 1) / 2), y = fy - Math.floor((h - 1) / 2);
+  if (dir === 'up') y = fy - h + 1; else if (dir === 'down') y = fy;
+  else if (dir === 'left') x = fx - w + 1; else x = fx;
+  return {x, y, w, h};
+}
+function canPlace(id, r) {
+  const flat = !!ITEMS[id].flat;
+  for (let y = r.y; y < r.y + r.h; y++) for (let x = r.x; x < r.x + r.w; x++) {
+    if (!staticFree(S.scene, x, y) || dropAt(x, y) || digAt(x, y)) return false;
+    if (flat ? placedIn(S.scene, x, y, true) : (solidAt(x, y) || friendAt(x, y) || bugAt(x, y) || (x === P.x && y === P.y))) return false;
+  }
+  return true;
+}
+// 문 앞·입구 자리에는 물건을 못 놓게 막는다
+const reserved = (x, y) => onIsland() ? same(x, y, HOME_FRONT) : (same(x, y, ROOM_ENTRY) || tileAt(x, y) === 'door');
+function front() { const [dx, dy] = DIRS[P.dir]; return [P.x + dx, P.y + dy]; }
+function warp(x, y, dir) { Object.assign(P, {x, y, tx:x, ty:y, dir, moving:false, t:0}); }
+function addItem(id, n = 1) { S.inv[id] = (S.inv[id] || 0) + n; renderInv(); }
+function removeItem(id, n = 1) {
+  S.inv[id] -= n;
+  if (S.inv[id] <= 0) { delete S.inv[id]; if (S.holding === id) S.holding = null; }
+  renderInv(); updateHUD();
+}
+
+// ---------- 소리 ----------
+let AC = null;
+const SFX = {
+  coin:[[988,.07],[1319,.14]], shake:[[170,.07,'triangle'],[140,.09,'triangle']], splash:[[260,.12,'sine'],[180,.1,'sine']],
+  bite:[[740,.05],[0,.04],[740,.06]], catch:[[523,.08],[659,.08],[784,.18]], miss:[[300,.1],[200,.16]],
+  water:[[880,.05,'sine'],[1175,.07,'sine']], buy:[[660,.06],[880,.12]], place:[[440,.06,'triangle'],[587,.08,'triangle']],
+  bee:[[220,.3,'sawtooth']], dig:[[200,.05,'triangle'],[150,.08,'triangle'],[660,.12,'sine']], door:[[392,.08,'triangle'],[523,.12,'triangle']],
+};
+function sfx(kind) {
+  if (muted) return;
+  try {
+    AC = AC || new (window.AudioContext || window.webkitAudioContext)();
+    let t = AC.currentTime;
+    SFX[kind].forEach(([f, d, type]) => {
+      if (f) {
+        const o = AC.createOscillator(), g = AC.createGain();
+        o.type = type || 'square'; o.frequency.value = f;
+        g.gain.setValueAtTime(0.05, t); g.gain.exponentialRampToValueAtTime(0.001, t + d);
+        o.connect(g).connect(AC.destination); o.start(t); o.stop(t + d);
+      }
+      t += d;
+    });
+  } catch (e) {}
+}
+
+// ---------- 알림 ----------
+const toastsEl = document.getElementById('toasts');
+function toast(msg) {
+  const el = document.createElement('div');
+  el.className = 'toast'; el.textContent = msg;
+  toastsEl.appendChild(el);
+  while (toastsEl.children.length > 3) toastsEl.firstChild.remove();
+  setTimeout(() => { el.style.opacity = 0; setTimeout(() => el.remove(), 400); }, 2400);
+}
+const catchEl = document.getElementById('catch');
+let catchTimer = 0;
+function showCatch(emoji, title, sub) {
+  catchEl.innerHTML = `<div class="card"><div class="big">${emoji}</div><div class="t">${title}</div><div class="p">${sub}</div></div>`;
+  clearTimeout(catchTimer);
+  catchTimer = setTimeout(() => catchEl.innerHTML = '', 1900);
+}
+
+// ---------- 장면 이동 ----------
+function enterHome() {
+  S.scene = 'home'; fish = {state:'idle'};
+  warp(ROOM_ENTRY[0], ROOM_ENTRY[1], 'up');
+  sfx('door'); toast('🏠 집에 들어왔어요! 가구를 놓아 꾸며보세요'); save();
+}
+function exitHome() {
+  S.scene = 'island';
+  warp(HOME_FRONT[0], HOME_FRONT[1], 'down');
+  sfx('door'); save();
+}
+
+// ---------- 행동 ----------
+function action() {
+  if (fish.state === 'wait') { fish = {state:'idle'}; toast('앗, 너무 빨리 당겼어요! 물고기가 도망갔다…'); sfx('miss'); return; }
+  if (fish.state === 'bite') { catchFish(); return; }
+  const [fx, fy] = front();
+  if (!inBounds(fx, fy)) return;
+  const b = buildingAt(fx, fy);
+  if (b) { if (b.id === 'shop') openShop(); else enterHome(); return; }
+  if (isNPC(fx, fy)) { openShop(); return; }
+  const fr = friendAt(fx, fy);
+  if (fr) { talk(fr.id); return; }
+  if (isArcade(fx, fy)) { openMini(); return; }
+  const bug = bugAt(fx, fy);
+  if (bug) { catchBug(bug); return; }
+  const dg = digAt(fx, fy);
+  if (dg) { dig(dg); return; }
+  if (isMirror(fx, fy)) { openDress(); return; }
+  if (!onIsland() && tileAt(fx, fy) === 'door') { exitHome(); return; }
+  if (isTree(fx, fy)) { shakeTree(fx, fy); return; }
+  const p = placedAt(fx, fy);
+  if (p && !(S.holding && fpOf(p).flat)) {  // 러그 위에는 들고 있는 가구를 놓는다
+    if (p.kind === 'flower') {
+      const f = FLOWER_BY_ID[p.fid];
+      if (p.stage >= 3) toast(`${f.emoji} ${f.name}이(가) 활짝 피었어요! (R: 꺾기)`);
+      else if (p.wateredAt) toast('이미 물을 줬어요. 조금만 기다려요 🌱');
+      else { p.wateredAt = Date.now(); S.stats.water++; addSparkle(fx, fy, '💧'); toast('💧 물을 줬어요!'); sfx('water'); save(); }
+    } else toast(`${ITEMS[p.id].emoji} ${ITEMS[p.id].name} (R: 회수)`);
+    return;
+  }
+  const t = tileAt(fx, fy);
+  if (isWater(t)) { castLine(fx, fy, t); return; }
+  if (S.holding) placeHolding(fx, fy);
+}
+
+function placeHolding(x, y) {
+  const id = S.holding, it = ITEMS[id];
+  if (!it || !S.inv[id]) { S.holding = null; updateHUD(); return; }
+  if (dropAt(x, y)) { toast('바닥에 떨어진 걸 먼저 주워요!'); return; }
+  if (digAt(x, y)) { toast('반짝이는 땅을 먼저 파 봐요!'); return; }
+  const r = fpRect(id, x, y, P.dir);
+  if (!canPlace(id, r)) {
+    toast(it.type === 'furn' && it.w * it.h > 1 ? `${it.name}은(는) ${it.w}×${it.h}칸이 필요해요. 더 넓은 빈자리를 찾아봐요` : '여기에는 놓을 수 없어요');
+    return;
+  }
+  if (it.type === 'furn') S.stats.place++;
+  if (it.type === 'seed') S.stats.plant++;
+  if (it.type === 'furn') S.placed.push({s:S.scene, x:r.x, y:r.y, kind:'furn', id});
+  else S.placed.push({s:S.scene, x, y, kind:'flower', fid:it.flower, stage:it.type === 'flower' ? 3 : 0, wateredAt:null});
+  addSparkle(r.x + (r.w - 1) / 2, r.y + (r.h - 1) / 2, '✨');
+  sfx('place');
+  removeItem(id);
+  save();
+}
+
+function retrieve() {
+  const [fx, fy] = front();
+  const p = placedAt(fx, fy);
+  if (!p) return;
+  S.placed.splice(S.placed.indexOf(p), 1);
+  if (p.kind === 'furn') { addItem(p.id); toast(`${ITEMS[p.id].emoji} ${ITEMS[p.id].name}을(를) 주머니에 넣었어요`); }
+  else if (p.stage >= 3) { addItem('fl_' + p.fid); toast(`${FLOWER_BY_ID[p.fid].emoji} 꽃을 꺾었어요`); }
+  else { addItem('seed_' + p.fid); toast('🌱 씨앗을 다시 캤어요'); }
+  sfx('place');
+  save();
+}
+
+function shakeTree(x, y) {
+  const k = x + ',' + y;
+  shakeAnim[k] = performance.now();
+  sfx('shake');
+  if (Date.now() - (S.trees[k] || 0) < TREE_CD) { toast('사르륵… 아무것도 떨어지지 않았다.'); return; }
+  S.trees[k] = Date.now();
+  S.stats.shake++;
+  const r = Math.random();
+  if (r < 0.06) {
+    beeUntil = performance.now() + 2600; sfx('bee');
+    toast('🐝 으악! 벌집이 떨어졌다! 벌에 쏘였어요…');
+  } else if (r < 0.58) {
+    const amt = (Math.random() < 0.12 ? 10 : 1 + Math.floor(Math.random() * 5)) * 100;
+    spawnDrop(x, y, {kind:'bells', amt});
+    toast('💰 무언가 떨어졌다!');
+  } else if (r < 0.9) {
+    const n = 1 + Math.floor(Math.random() * 3);
+    for (let i = 0; i < n; i++) spawnDrop(x, y, {kind:'item', id:'apple'});
+    toast(`🍎 사과가 ${n}개 떨어졌다!`);
+  } else {
+    const cheap = FURN.filter(f => f[3] <= 2500);
+    const f = cheap[Math.floor(Math.random() * cheap.length)];
+    spawnDrop(x, y, {kind:'item', id:'fu_' + f[0]});
+    toast(`${f[2]} 나무에서 ${f[1]}이(가) 떨어졌다?!`);
+  }
+  save();
+}
+
+function spawnDrop(tx, ty, d) {
+  const spots = [];
+  for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+    const x = tx + dx, y = ty + dy;
+    if ((dx || dy) && !blocked(x, y) && !dropAt(x, y) && !(x === P.x && y === P.y)) spots.push([x, y]);
+  }
+  if (!spots.length) { collect(d); return; }
+  const [x, y] = spots[Math.floor(Math.random() * spots.length)];
+  S.drops.push(Object.assign({x, y, born:Date.now()}, d));
+}
+
+function collect(d) {
+  if (d.kind === 'bells') { S.bells += d.amt; toast(`💰 ${d.amt.toLocaleString()}벨을 주웠다!`); sfx('coin'); updateHUD(); }
+  else { addItem(d.id); toast(`${ITEMS[d.id].emoji} ${ITEMS[d.id].name}을(를) 주웠다!`); sfx('coin'); }
+}
+
+function onArrive() {
+  if (!onIsland() && tileAt(P.x, P.y) === 'door') { exitHome(); return; }
+  const d = dropAt(P.x, P.y);
+  if (d) { S.drops.splice(S.drops.indexOf(d), 1); collect(d); save(); }
+}
+
+// ---------- 낚시 ----------
+function castLine(fx, fy, t) {
+  const [dx, dy] = DIRS[P.dir];
+  let bx = fx, by = fy;
+  if (inBounds(fx + dx, fy + dy) && tileAt(fx + dx, fy + dy) === t) { bx += dx; by += dy; }
+  fish = {state:'wait', bx, by, src:t, until:performance.now() + 1800 + Math.random() * 4500, nibbles:[]};
+  const n = Math.floor(Math.random() * 3);
+  for (let i = 0; i < n; i++) fish.nibbles.push(performance.now() + 600 + Math.random() * (fish.until - performance.now() - 900));
+  sfx('splash');
+}
+
+function catchFish() {
+  const pool = FISH.filter(f => f.src === fish.src || f.src === 'both');
+  let r = Math.random() * pool.reduce((s, f) => s + f.w, 0), got = pool[0];
+  for (const f of pool) { r -= f.w; if (r <= 0) { got = f; break; } }
+  addItem(got.id);
+  if (got.id !== 'boot') S.stats.catch++;
+  const msg = got.id === 'boot' ? '…낡은 장화를 낚았다. 에휴.' : got.price >= 1000 ? '우와! 대박이다!!' : '잡았다~!';
+  showCatch(got.emoji, `${got.name}을(를) 잡았다!`, `${msg} · ${got.price.toLocaleString()}벨`);
+  sfx('catch');
+  fish = {state:'idle'};
+  save();
+}
+
+function updateFishing(now) {
+  if (fish.state === 'wait' && now >= fish.until) { fish.state = 'bite'; fish.until = now + 750; sfx('bite'); }
+  else if (fish.state === 'bite' && now >= fish.until) { fish = {state:'idle'}; toast('물고기가 도망갔다… 찌가 가라앉을 때 Space!'); sfx('miss'); }
+}
+
+// ---------- 상점 ----------
+const shopEl = document.getElementById('shop'), shopBody = document.getElementById('shopBody');
+let shopTab = 'sell';
+function openShop() { shopEl.classList.remove('hidden'); renderShop(); toast('🦝 어서오세요~ 너굴 상점이에요!'); }
+function renderShop() {
+  shopEl.querySelectorAll('[data-tab]').forEach(b => b.classList.toggle('on', b.dataset.tab === shopTab));
+  let html = '';
+  if (shopTab === 'sell') {
+    const ids = Object.keys(S.inv).filter(id => ITEMS[id].sell > 0);
+    const quick = ids.filter(id => QUICK.includes(ITEMS[id].type));
+    const total = quick.reduce((s, id) => s + ITEMS[id].sell * S.inv[id], 0);
+    if (quick.length) html += `<button class="sellall" data-sellall>🐟🦋🦴 가구·씨앗 빼고 전부 팔기 (+${total.toLocaleString()}벨)</button>`;
+    if (!ids.length) html += '<p class="note">팔 수 있는 물건이 없어요. 나무를 흔들거나 낚시를 해보세요!</p>';
+    ids.forEach(id => {
+      const it = ITEMS[id];
+      html += `<div class="row"><span class="e">${it.emoji}</span><span class="nm">${it.name} × ${S.inv[id]}</span>
+        <span class="pr">${it.sell.toLocaleString()}벨</span>
+        <button data-sell="${id}">1개 팔기</button><button data-sell="${id}" data-all>전부</button></div>`;
+    });
+  } else if (shopTab === 'cloth') {
+    CLOTHES.filter(c => c.price > 0).forEach(c => {
+      const own = S.closet.includes(c.id);
+      html += `<div class="row"><span class="e">${c.emoji}</span><span class="nm">${c.name} <span class="note">${c.slot === 'hat' ? '모자·장식' : '상의'}</span></span>
+        <span class="pr">${c.price.toLocaleString()}벨</span>
+        <button data-cloth="${c.id}" ${own || S.bells < c.price ? 'disabled' : ''}>${own ? '보유중' : '사기'}</button></div>`;
+    });
+  } else {
+    const type = shopTab === 'furn' ? 'furn' : 'seed';
+    Object.entries(ITEMS).filter(([, it]) => it.type === type).forEach(([id, it]) => {
+      html += `<div class="row"><span class="e">${it.emoji}</span><span class="nm">${it.name}${S.inv[id] ? ` <span class="note">(보유 ${S.inv[id]})</span>` : ''}</span>
+        ${it.w ? `<span class="note">${it.w}×${it.h}칸</span>` : ''}<span class="pr">${it.buy.toLocaleString()}벨</span>
+        <button data-buy="${id}" ${S.bells < it.buy ? 'disabled' : ''}>사기</button></div>`;
+    });
+  }
+  shopBody.innerHTML = html;
+}
+shopEl.addEventListener('click', e => {
+  const t = e.target.closest('button');
+  if (!t) return;
+  if (t.dataset.tab) { shopTab = t.dataset.tab; renderShop(); return; }
+  if (t.dataset.sell) {
+    const id = t.dataset.sell, n = t.hasAttribute('data-all') ? S.inv[id] : 1;
+    S.bells += ITEMS[id].sell * n; removeItem(id, n); sfx('coin');
+  } else if (t.hasAttribute('data-sellall')) {
+    let sum = 0;
+    Object.keys(S.inv).filter(id => QUICK.includes(ITEMS[id].type))
+      .forEach(id => { sum += ITEMS[id].sell * S.inv[id]; removeItem(id, S.inv[id]); });
+    toast(`🦝 ${sum.toLocaleString()}벨에 사들일게요~`); sfx('coin');
+  } else if (t.dataset.buy) {
+    const it = ITEMS[t.dataset.buy];
+    if (S.bells < it.buy) return;
+    S.bells -= it.buy; addItem(t.dataset.buy); sfx('buy');
+    toast(`${it.emoji} ${it.name}을(를) 샀어요! 아래 칸에서 골라 설치해요`);
+  } else if (t.dataset.cloth) {
+    const c = CLOTH[t.dataset.cloth];
+    if (S.bells < c.price || S.closet.includes(c.id)) return;
+    S.bells -= c.price; S.closet.push(c.id); S.wear[c.slot] = c.id; sfx('buy');
+    toast(`${c.emoji} ${c.name}을(를) 사서 바로 입었어요! (C: 옷장)`);
+  } else return;
+  updateHUD(); renderShop(); save();
+});
+
+// ---------- 옷장 ----------
+const dressEl = document.getElementById('dress'), pv = document.getElementById('preview'), pvx = pv.getContext('2d');
+function openDress(title) {
+  document.getElementById('dressTitle').textContent = title || '👕 옷장';
+  dressEl.classList.remove('hidden'); renderDress();
+}
+function renderDress() {
+  const c = S.char;
+  dressEl.querySelectorAll('[data-gender]').forEach(b => b.classList.toggle('on', b.dataset.gender === c.gender));
+  document.getElementById('hairSw').innerHTML = HAIR_COLORS.map(h =>
+    `<button data-hair="${h}" class="${h === c.hair ? 'on' : ''}" style="background:${h}"></button>`).join('');
+  document.getElementById('skinSw').innerHTML = SKINS.map(s =>
+    `<button data-skin="${s}" class="${s === c.skin ? 'on' : ''}" style="background:${s}"></button>`).join('');
+  const btn = (id, label, ic, slot) =>
+    `<button class="cbtn ${S.wear[slot] === id ? 'on' : ''}" data-wear="${slot}:${id || ''}"><span class="ic">${ic}</span>${label}</button>`;
+  const own = slot => S.closet.map(id => CLOTH[id]).filter(x => x && x.slot === slot);
+  document.getElementById('topList').innerHTML = own('top').map(x => btn(x.id, x.name, x.emoji, 'top')).join('');
+  document.getElementById('hatList').innerHTML = btn(null, '없음', '🙅', 'hat') + own('hat').map(x => btn(x.id, x.name, x.emoji, 'hat')).join('');
+  pvx.setTransform(1, 0, 0, 1, 0, 0);
+  pvx.clearRect(0, 0, pv.width, pv.height);
+  pvx.setTransform(2.4, 0, 0, 2.4, 0, 0);
+  drawCharacter(pvx, 27.5, 34, 'down', 0);
+}
+dressEl.addEventListener('click', e => {
+  const t = e.target.closest('button');
+  if (!t) return;
+  if (t.dataset.gender) S.char.gender = t.dataset.gender;
+  else if (t.dataset.hair) S.char.hair = t.dataset.hair;
+  else if (t.dataset.skin) S.char.skin = t.dataset.skin;
+  else if (t.dataset.wear !== undefined) { const [slot, id] = t.dataset.wear.split(':'); S.wear[slot] = id || null; }
+  else return;
+  renderDress(); save();
+});
+
+// ---------- 친구 · 미션 ----------
+const talkEl = document.getElementById('talk'), portrait = document.getElementById('portrait'), ptx = portrait.getContext('2d');
+let talkPrimary = null;
+const pick = a => a[Math.floor(Math.random() * a.length)];
+const rnd = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+
+// 고정 미션 5개를 다 깬 뒤에는 친구 말투에 맞춘 랜덤 미션이 끝없이 나온다
+const ASK = {
+  chiikawa:'저기… {g}… 해줄 수 있어…?',
+  hachiware:'있잖아~ {g}! 부탁해도 될까?',
+  usagi:'우라!! (손짓 발짓) → {g}! 야하!',
+  momonga:'{g}! 지금 당장! 해줘해줘~!',
+  rakko:'오늘의 수련 과제다. {g}.',
+};
+function genQuest(fid) {
+  const homeFurn = S.placed.filter(p => p.s === 'home' && p.kind === 'furn').length;
+  const T = [
+    () => { const f = pick(FISH.filter(x => x.id !== 'boot' && x.price <= 1300)), n = f.price >= 800 ? 1 : rnd(1, 3);
+      return {type:'give', item:f.id, n, goal:`${f.emoji} ${f.name} ${n}마리 가져다주기`, bells:f.price * n + 500}; },
+    () => { const n = rnd(2, 5); return {type:'give', item:'@fish', n, goal:`🐟 아무 물고기 ${n}마리 가져다주기`, bells:n * 250 + 300}; },
+    () => { const b = pick(BUGS.filter(x => x.price <= 400)), n = rnd(1, 2);
+      return {type:'give', item:b.id, n, goal:`${b.emoji} ${b.name} ${n}마리 가져다주기`, bells:b.price * n + 600}; },
+    () => { const n = rnd(2, 5); return {type:'give', item:'@bug', n, goal:`🐞 아무 곤충 ${n}마리 가져다주기`, bells:n * 250 + 300}; },
+    () => { const f = pick(FLOWERS), n = rnd(1, 3);
+      return {type:'give', item:'fl_' + f.id, n, goal:`${f.emoji} ${f.name} ${n}송이 가져다주기`, bells:f.sell * n + 700}; },
+    () => { const n = rnd(3, 8); return {type:'give', item:'apple', n, goal:`🍎 사과 ${n}개 가져다주기`, bells:n * 150 + 200}; },
+    () => { const it = ITEMS[pick(['shell', 'shell', 'fossil', 'gem'])], id = Object.keys(ITEMS).find(k => ITEMS[k] === it);
+      return {type:'give', item:id, n:1, goal:`${it.emoji} ${it.name} 1개 가져다주기`, bells:it.sell + 600}; },
+    () => { const [stat, ic, word, lo, hi, per] = pick([
+        ['shake', '🌳', '나무 흔들기', 3, 8, 120], ['catch', '🎣', '물고기 낚기', 3, 6, 250], ['bug', '🦋', '곤충 잡기', 2, 5, 250],
+        ['dig', '⛏️', '땅 파기', 2, 4, 350], ['water', '💧', '꽃에 물 주기', 3, 8, 120], ['plant', '🌱', '씨앗 심기', 2, 5, 200],
+        ['place', '🪑', '가구 설치하기', 1, 3, 300]]);
+      const n = rnd(lo, hi); return {type:'count', stat, n, goal:`${ic} ${word} ${n}번`, bells:n * per + 300}; },
+    () => { const n = rnd(3, 7) * 5; return {type:'score', n, goal:`🎮 과일 받기 게임 ${n}점 넘기기`, bells:n * 40 + 300}; },
+    () => { const c = pick(CLOTHES.filter(x => x.price > 0 && x.price <= 4800));
+      return {type:'wear', item:c.id, n:1, goal:`${c.emoji} ${c.name} 입고 보여주기`, bells:Math.round(c.price * 0.6) + 500}; },
+    () => { const to = pick(FRIENDS.filter(x => x.id !== fid));
+      return {type:'deliver', to:to.id, n:1, goal:`💌 ${to.name}에게 편지 전해주기`, bells:900}; },
+    () => { const n = homeFurn + rnd(1, 2); return {type:'home', n, goal:`🏠 집 안에 가구 ${n}개 놓아두기`, bells:800 + n * 100}; },
+    () => { const n = Math.ceil((S.bells + rnd(2, 5) * 1000) / 1000) * 1000;
+      return {type:'bells', n, goal:`💰 ${n.toLocaleString()}벨 모아서 보여주기`, bells:1200}; },
+  ];
+  const q = pick(T)();
+  q.text = ASK[fid].replace('{g}', q.goal.replace(/^\S+\s/, ''));
+  q.reward = {bells:Math.round(q.bells / 100) * 100};
+  delete q.bells;
+  const r = Math.random();
+  if (r < 0.25) { const f = pick(FURN.filter(x => x[3] <= 5000)); q.reward.item = 'fu_' + f[0]; q.reward.cnt = 1; }
+  else if (r < 0.4) { q.reward.item = 'seed_' + pick(FLOWERS).id; q.reward.cnt = rnd(2, 4); }
+  else if (r < 0.5) {
+    const c = CLOTHES.filter(x => x.price > 0 && x.price < 5000 && !S.closet.includes(x.id) && x.id !== q.item);
+    if (c.length) q.reward.cloth = pick(c).id;
+  }
+  q.gen = true;
+  return q;
+}
+function curQuest(fid) {
+  const f = FRIEND[fid], st = S.friends[fid];
+  if (st.q < f.quests.length) return f.quests[st.q];
+  // 예전 저장 데이터에서 반복 미션을 진행 중이었다면 그 미션을 그대로 이어간다
+  if (!st.gen) st.gen = st.active ? Object.assign({}, f.quests[st.q % f.quests.length]) : genQuest(fid);
+  return st.gen;
+}
+const letterFor = fid => FRIENDS.find(s => s.id !== fid && S.friends[s.id].active && !S.friends[s.id].delivered
+  && curQuest(s.id).type === 'deliver' && curQuest(s.id).to === fid);
+function countItem(item) {
+  if (item[0] === '@') return Object.keys(S.inv).filter(id => ITEMS[id].type === item.slice(1)).reduce((s, id) => s + S.inv[id], 0);
+  return S.inv[item] || 0;
+}
+function questProgress(fid) {
+  const st = S.friends[fid], q = curQuest(fid);
+  let v = 0;
+  switch (q.type) {
+    case 'give':    v = countItem(q.item); break;
+    case 'count':   v = S.stats[q.stat] - st.base; break;
+    case 'bells':   v = S.bells; break;
+    case 'score':   v = st.top || 0; break;
+    case 'wear':    v = S.wear.top === q.item || S.wear.hat === q.item ? 1 : 0; break;
+    case 'deliver': v = st.delivered ? 1 : 0; break;
+    case 'home':    v = S.placed.filter(p => p.s === 'home' && p.kind === 'furn').length; break;
+  }
+  return Math.min(v, q.n);
+}
+function rewardText(r) {
+  const parts = [`${r.bells.toLocaleString()}벨`];
+  if (r.item) parts.push(`${ITEMS[r.item].emoji} ${ITEMS[r.item].name} ×${r.cnt}`);
+  if (r.cloth) parts.push(`${CLOTH[r.cloth].emoji} ${CLOTH[r.cloth].name}`);
+  return parts.join(' + ');
+}
+function talk(fid) {
+  const f = FRIEND[fid], st = S.friends[fid], q = curQuest(fid);
+  const sender = letterFor(fid);
+  if (sender && S.inv.letter) {
+    openTalk(fid, `어? 그거 ${sender.name}이(가) 나한테 보낸 편지야?! 💌`, [
+      ['편지 전해주기', () => {
+        S.friends[sender.id].delivered = true; removeItem('letter'); save(); sfx('coin');
+        openTalk(fid, `와아~ 고마워! 소중히 읽을게!\n\n(${sender.name}에게 돌아가서 전했다고 알려주자)`, [['응!', closeTalk]]);
+      }],
+      ['나중에', closeTalk, 'sub'],
+    ]);
+    return;
+  }
+  if (st.active) {
+    const prog = questProgress(fid);
+    if (prog >= q.n) {
+      openTalk(fid, `오오…! ${q.goal}, 해냈구나!`, [['완료하기! 🎁', () => completeQuest(fid)]]);
+    } else {
+      openTalk(fid, `${f.wait}\n\n📜 ${q.goal}  (${prog.toLocaleString()} / ${q.n.toLocaleString()})`, [
+        ['알겠어!', closeTalk],
+        ['그만둘래…', () => {
+          if (q.type === 'deliver' && !st.delivered && S.inv.letter) removeItem('letter');
+          st.active = false; if (q.gen) st.gen = null;
+          save(); closeTalk(); toast(`${f.icon} ${f.name}의 미션을 그만뒀어요`);
+        }, 'sub'],
+      ]);
+    }
+  } else {
+    openTalk(fid, `${pick(f.greet)}\n\n${q.text}\n\n🎁 보상: ${rewardText(q.reward)}`, [
+      ['좋아, 해줄게!', () => {
+        st.active = true; st.base = q.type === 'count' ? S.stats[q.stat] : 0;
+        st.top = 0; st.delivered = false;
+        if (q.type === 'deliver') { addItem('letter'); toast(`💌 편지를 받았어요! ${FRIEND[q.to].name}에게 전해주세요`); }
+        save(); closeTalk(); sfx('buy'); toast(`📜 미션 시작: ${q.goal}`);
+      }],
+      ...(q.gen ? [['다른 거 없어?', () => { st.gen = null; talk(fid); }, 'sub']] : []),
+      ['다음에…', closeTalk, 'sub'],
+    ]);
+  }
+}
+function completeQuest(fid) {
+  const f = FRIEND[fid], st = S.friends[fid], q = curQuest(fid);
+  if (questProgress(fid) < q.n) { talk(fid); return; }
+  if (q.type === 'give') {
+    if (q.item[0] === '@') {
+      let left = q.n;
+      Object.keys(S.inv).filter(id => ITEMS[id].type === q.item.slice(1)).sort((a, b) => ITEMS[a].sell - ITEMS[b].sell)
+        .forEach(id => { const k = Math.min(left, S.inv[id]); if (k > 0) { removeItem(id, k); left -= k; } });
+    } else removeItem(q.item, q.n);
+  }
+  const r = q.reward;
+  S.bells += r.bells;
+  if (r.item) addItem(r.item, r.cnt);
+  let extra = '';
+  if (r.cloth) {
+    if (S.closet.includes(r.cloth)) { S.bells += CLOTH[r.cloth].price; extra = `\n(${CLOTH[r.cloth].name}은 이미 있어서 ${CLOTH[r.cloth].price.toLocaleString()}벨로 받았어요)`; }
+    else { S.closet.push(r.cloth); extra = '\n(옷장(C)에서 입어볼 수 있어요)'; }
+  }
+  st.active = false; st.q++; st.hearts++; st.gen = null;
+  updateHUD(); save(); sfx('catch');
+  openTalk(fid, `${f.thanks}\n\n🎁 ${rewardText(r)} 받았다!${extra}\n💗 우정이 깊어졌어요!`, [['천만에!', closeTalk]]);
+}
+function openTalk(fid, text, btns) {
+  const f = FRIEND[fid], st = S.friends[fid];
+  document.getElementById('talkName').textContent = `${f.icon} ${f.name}`;
+  document.getElementById('talkHearts').textContent = st.hearts ? '💗'.repeat(Math.min(st.hearts, 10)) + (st.hearts > 10 ? ` ×${st.hearts}` : '') : '';
+  document.getElementById('talkText').textContent = text;
+  const box = document.getElementById('talkBtns');
+  box.innerHTML = '';
+  btns.forEach(([label, fn, cls]) => {
+    const b = document.createElement('button');
+    b.textContent = label; if (cls) b.className = cls; b.onclick = fn;
+    box.appendChild(b);
+  });
+  talkPrimary = btns[0][1];
+  ptx.setTransform(1, 0, 0, 1, 0, 0); ptx.clearRect(0, 0, 110, 110);
+  ptx.setTransform(1.9, 0, 0, 1.9, 0, 0);
+  drawFriend(ptx, fid, 29, 38, 0);
+  talkEl.classList.remove('hidden');
+}
+function closeTalk() { talkEl.classList.add('hidden'); talkPrimary = null; }
+
+const questEl = document.getElementById('questbar');
+function renderQuests() {
+  const rows = FRIENDS.filter(f => S.friends[f.id].active).map(f => {
+    const q = curQuest(f.id), p = questProgress(f.id), ok = p >= q.n;
+    return `<div class="q ${ok ? 'ok' : ''}">${f.icon} ${f.name} · ${q.goal}<b>${ok ? '✅ 완료! 말 걸기' : `${p.toLocaleString()} / ${q.n.toLocaleString()}`}</b></div>`;
+  });
+  const html = rows.length ? `<div class="qh">📜 진행 중인 미션</div>${rows.join('')}` : '';
+  if (questEl.innerHTML !== html) questEl.innerHTML = html;
+}
+setInterval(renderQuests, 300);
+
+const MOVE_F = 0.38;
+function updateFriends(dt, now) {
+  if (!onIsland()) return;
+  FR.forEach(f => {
+    if (f.moving) { f.t += dt / MOVE_F; if (f.t >= 1) { f.moving = false; f.x = f.tx; f.y = f.ty; } return; }
+    if (Math.abs(P.x - f.x) + Math.abs(P.y - f.y) <= 2 || now < f.next) return;  // 플레이어가 가까우면 멈춰서 기다린다
+    f.next = now + 1200 + Math.random() * 2600;
+    const [dx, dy] = DIRS[pick(Object.keys(DIRS))], nx = f.x + dx, ny = f.y + dy;
+    if (Math.abs(nx - f.home[0]) > 4 || Math.abs(ny - f.home[1]) > 3) return;
+    if (blocked(nx, ny) || reserved(nx, ny) || (nx === P.x && ny === P.y) || (nx === P.tx && ny === P.ty)) return;
+    Object.assign(f, {moving:true, t:0, tx:nx, ty:ny});
+  });
+}
+
+// ---------- 곤충 채집 ----------
+let bugSpawn = 0;
+function randomFreeTile(ok) {
+  for (let i = 0; i < 40; i++) {
+    const x = Math.floor(Math.random() * W), y = Math.floor(Math.random() * 14);
+    if (ok(x, y) && !blocked(x, y) && !reserved(x, y) && !placedAt(x, y) && !bugAt(x, y) && !digAt(x, y) && !dropAt(x, y)
+      && Math.abs(x - P.x) + Math.abs(y - P.y) > 3) return [x, y];
+  }
+  return null;
+}
+function updateBugs(dt, now) {
+  if (!onIsland()) return;
+  bugSpawn -= dt;
+  if (bugSpawn <= 0) {
+    bugSpawn = 4 + Math.random() * 4;
+    const spot = bugs.length < 4 && randomFreeTile((x, y) => tileAt(x, y) === 'grass');
+    if (spot) {
+      let r = Math.random() * BUGS.reduce((s, b) => s + b.w, 0), type = BUGS[0];
+      for (const b of BUGS) { r -= b.w; if (r <= 0) { type = b; break; } }
+      bugs.push(Object.assign({}, type, {x:spot[0], y:spot[1], born:now, next:now + 2000, seed:Math.random() * 10}));
+    }
+  }
+  bugs = bugs.filter(b => now - b.born < 45000);
+  bugs.forEach(b => {
+    if (now < b.next) return;
+    b.next = now + (b.fly ? 1500 : 3500) + Math.random() * 2500;
+    const [dx, dy] = DIRS[pick(Object.keys(DIRS))], nx = b.x + dx, ny = b.y + dy;
+    if (!blocked(nx, ny) && !(nx === P.x && ny === P.y) && !bugAt(nx, ny) && tileAt(nx, ny) === 'grass') { b.x = nx; b.y = ny; }
+  });
+}
+function catchBug(b) {
+  bugs.splice(bugs.indexOf(b), 1);
+  addItem(b.id); S.stats.bug++;
+  toast(`${b.emoji} ${b.name}을(를) 잡았다! ${b.price >= 1000 ? '희귀한 곤충이다!!' : ''} (${b.price.toLocaleString()}벨)`);
+  sfx('catch'); save();
+}
+
+// ---------- 땅 파기 ----------
+let digNext = 0;
+function updateDigs(now) {
+  if (S.digs.length >= 3 || now < digNext) return;
+  digNext = now + 1000;
+  const spot = randomFreeTile((x, y) => ['grass', 'sand'].includes(tileAt(x, y)));
+  if (spot) { S.digs.push({x:spot[0], y:spot[1]}); save(); }
+}
+function dig(d) {
+  S.digs.splice(S.digs.indexOf(d), 1);
+  digNext = performance.now() + 15000;
+  S.stats.dig++; sfx('dig');
+  let r = Math.random() * DIG_TABLE.reduce((s, [, w]) => s + w, 0), id = 'stone';
+  for (const [k, w] of DIG_TABLE) { r -= w; if (r <= 0) { id = k; break; } }
+  if (id === '$') { S.bells += 1000; updateHUD(); showCatch('💰', '벨 주머니를 캤다!', '1,000벨 획득!'); }
+  else {
+    addItem(id);
+    const it = ITEMS[id];
+    showCatch(it.emoji, `${it.name}을(를) 캤다!`, it.type === 'furn' ? '가구예요! 설치할 수 있어요' : `${it.sell.toLocaleString()}벨`);
+  }
+  save();
+}
+
+// ---------- 미니게임: 과일 받기 ----------
+const miniEl = document.getElementById('mini'), mcv = document.getElementById('miniCv'), mx = mcv.getContext('2d');
+let MG = {state:'ready'};
+function openMini() {
+  MG = {state:'ready', score:0, time:30, bx:210, items:[], spawn:0, pops:[]};
+  miniEl.classList.remove('hidden');
+}
+function startMini() { Object.assign(MG, {state:'play', score:0, time:30, items:[], spawn:0, pops:[], newBest:false}); sfx('buy'); }
+function updateMini(dt) {
+  if (MG.state !== 'play') return;
+  MG.time -= dt;
+  const d = held[held.length - 1];
+  if (d === 'left') MG.bx -= 330 * dt;
+  if (d === 'right') MG.bx += 330 * dt;
+  MG.bx = Math.max(32, Math.min(388, MG.bx));
+  MG.spawn -= dt;
+  if (MG.spawn <= 0) {
+    const el = 30 - MG.time;
+    MG.spawn = Math.max(0.25, 0.6 - el * 0.01) + Math.random() * 0.3;
+    const r = Math.random(), kind = r < 0.07 ? 'star' : r < 0.27 ? 'bee' : 'fruit';
+    MG.items.push({x:30 + Math.random() * 360, y:-20, vy:150 + Math.random() * 110 + el * 6, kind,
+      e:kind === 'star' ? '🌟' : kind === 'bee' ? '🐝' : pick(['🍎', '🍊', '🍑', '🍐', '🍒'])});
+  }
+  MG.items.forEach(it => {
+    it.y += it.vy * dt;
+    if (!it.done && it.y >= 420 && it.y <= 455 && Math.abs(it.x - MG.bx) < 38) {
+      it.done = true;
+      const pts = it.kind === 'star' ? 5 : it.kind === 'bee' ? -3 : 1;
+      MG.score = Math.max(0, MG.score + pts);
+      MG.pops.push({x:it.x, y:410, t:0, txt:pts > 0 ? `+${pts}` : `${pts}`, c:pts > 0 ? '#4f9a53' : '#e8463c'});
+      sfx(pts > 0 ? 'coin' : 'miss');
+    }
+  });
+  MG.items = MG.items.filter(it => !it.done && it.y < 520);
+  MG.pops.forEach(p => p.t += dt);
+  MG.pops = MG.pops.filter(p => p.t < 0.7);
+  if (MG.time <= 0) {
+    MG.state = 'over'; MG.time = 0;
+    MG.reward = MG.score * 30; S.bells += MG.reward; S.stats.mini++;
+    FRIENDS.forEach(f => {
+      const st = S.friends[f.id];
+      if (st.active && curQuest(f.id).type === 'score') st.top = Math.max(st.top || 0, MG.score);
+    });
+    if (MG.score > S.best) { S.best = MG.score; MG.newBest = true; }
+    updateHUD(); save(); sfx('catch');
+  }
+}
+function drawMini(now) {
+  const g = mx, Wm = mcv.width, Hm = mcv.height;
+  const sky = g.createLinearGradient(0, 0, 0, Hm);
+  sky.addColorStop(0, '#bfe8ff'); sky.addColorStop(1, '#e9f8ff');
+  g.fillStyle = sky; g.fillRect(0, 0, Wm, Hm);
+  g.fillStyle = '#8fd388'; g.fillRect(0, 455, Wm, 25);
+  [[60, 60], [300, 40], [200, 100]].forEach(([x, y]) => {
+    g.fillStyle = 'rgba(255,255,255,.9)';
+    g.beginPath(); g.ellipse(x + Math.sin(now / 2000 + x) * 10, y, 34, 12, 0, 0, Math.PI * 2); g.fill();
+  });
+  MG.items.forEach(it => emoji(it.e, it.x, it.y, 32, g));
+  emoji('🧺', MG.bx, 438, 54, g);
+  MG.pops.forEach(p => {
+    g.globalAlpha = 1 - p.t / 0.7; g.fillStyle = p.c; g.font = `bold 22px ${FONT}`; g.textAlign = 'center';
+    g.fillText(p.txt, p.x, p.y - p.t * 50); g.globalAlpha = 1;
+  });
+  g.fillStyle = 'rgba(255,250,240,.92)'; g.beginPath(); g.roundRect(10, 10, Wm - 20, 38, 12); g.fill();
+  g.fillStyle = '#5a4632'; g.font = `bold 17px ${FONT}`; g.textBaseline = 'middle';
+  g.textAlign = 'left'; g.fillText(`점수 ${MG.score}`, 24, 30);
+  g.textAlign = 'center'; g.fillText(`⏱ ${Math.ceil(MG.time)}초`, Wm / 2, 30);
+  g.textAlign = 'right'; g.fillText(`최고 ${S.best}`, Wm - 24, 30);
+  if (MG.state !== 'play') {
+    g.fillStyle = 'rgba(255,250,240,.95)'; g.strokeStyle = '#f2b33d'; g.lineWidth = 4;
+    g.beginPath(); g.roundRect(50, 150, Wm - 100, 170, 20); g.fill(); g.stroke();
+    g.fillStyle = '#5a4632'; g.textAlign = 'center';
+    if (MG.state === 'ready') {
+      g.font = `bold 26px ${FONT}`; g.fillText('🍎 과일 받기 🧺', Wm / 2, 200);
+      g.font = `16px ${FONT}`; g.fillText('←→ 로 바구니를 움직여요', Wm / 2, 240);
+      g.font = `bold 18px ${FONT}`; g.fillStyle = '#4f9a53'; g.fillText('Space 를 눌러 시작!', Wm / 2, 280);
+    } else {
+      g.font = `bold 26px ${FONT}`; g.fillText(`${MG.score}점!${MG.newBest ? ' 🏆 신기록!' : ''}`, Wm / 2, 195);
+      g.font = `17px ${FONT}`; g.fillText(`🪙 ${MG.reward.toLocaleString()}벨을 받았어요`, Wm / 2, 235);
+      g.font = `bold 17px ${FONT}`; g.fillStyle = '#4f9a53'; g.fillText('Space 다시 하기 · Esc 나가기', Wm / 2, 280);
+    }
+  }
+}
+
+// ---------- 집 꾸미기 ----------
+const themeEl = document.getElementById('theme');
+function openTheme() { themeEl.classList.remove('hidden'); renderTheme(); }
+function renderTheme() {
+  const card = (t, slot, bg) => {
+    const own = S.themes.includes(t.id), on = S.theme[slot] === t.id;
+    const status = on ? '✅ 적용 중' : own ? '적용하기' : `${t.price.toLocaleString()}벨`;
+    return `<button class="tcard ${on ? 'on' : ''}" data-slot="${slot}" data-id="${t.id}" ${!own && S.bells < t.price ? 'disabled' : ''}>
+      <div class="sw2" style="background:${bg}"></div>${t.name}<span class="${own ? '' : 'pr'}">${status}</span></button>`;
+  };
+  document.getElementById('wallList').innerHTML = WALLS.map(t =>
+    card(t, 'wall', `repeating-linear-gradient(90deg, ${t.base} 0 12px, ${t.c2} 12px 16px)`)).join('');
+  document.getElementById('floorList').innerHTML = FLOORS.map(t =>
+    card(t, 'floor', `repeating-conic-gradient(${t.c1} 0 25%, ${t.c2} 0 50%) 0 0 / 20px 20px`)).join('');
+}
+themeEl.addEventListener('click', e => {
+  const b = e.target.closest('.tcard');
+  if (!b) return;
+  const {slot, id} = b.dataset, t = (slot === 'wall' ? WALL : FLOOR)[id];
+  if (!S.themes.includes(id)) {
+    if (S.bells < t.price) return;
+    S.bells -= t.price; S.themes.push(id); sfx('buy');
+  } else sfx('place');
+  S.theme[slot] = id;
+  toast(`🎨 ${t.name}(으)로 바꿨어요!${onIsland() ? ' 집에 들어가서 확인해보세요' : ''}`);
+  updateHUD(); renderTheme(); save();
+});
+
+// ---------- 모달 공통 ----------
+const helpEl = document.getElementById('help');
+let helpAfterDress = false;
+document.querySelectorAll('.modal').forEach(m => m.addEventListener('click', e => {
+  if (e.target === m || e.target.closest('[data-close]')) closeModal(m);
+}));
+function closeModal(m) {
+  m.classList.add('hidden');
+  if (m === dressEl && helpAfterDress) { helpAfterDress = false; helpEl.classList.remove('hidden'); }
+  if (m === miniEl && MG.state === 'play') { MG.state = 'ready'; toast('게임을 중간에 그만뒀어요'); }
+}
+const saveEl = document.getElementById('saveM');
+const MODALS = [shopEl, helpEl, dressEl, talkEl, miniEl, themeEl, saveEl];
+const modalOpen = () => MODALS.some(m => !m.classList.contains('hidden'));
+const closeModals = () => MODALS.forEach(m => { if (!m.classList.contains('hidden')) closeModal(m); });
+document.getElementById('helpBtn').onclick = () => helpEl.classList.remove('hidden');
+document.getElementById('dressBtn').onclick = () => openDress();
+document.getElementById('themeBtn').onclick = () => openTheme();
+
+// ---------- 저장 파일 (다른 컴퓨터로 옮기기) ----------
+document.getElementById('saveBtn').onclick = () => saveEl.classList.remove('hidden');
+document.getElementById('exportBtn').onclick = () => {
+  save();
+  const d = new Date(), pad = n => String(n).padStart(2, '0');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(S)], {type:'application/json'}));
+  a.download = `나만의섬_저장_${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}.json`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  toast('💾 저장 파일을 내려받았어요! (다운로드 폴더 확인)');
+};
+const importFile = document.getElementById('importFile');
+document.getElementById('importBtn').onclick = () => { importFile.value = ''; importFile.click(); };
+importFile.onchange = async () => {
+  const file = importFile.files[0];
+  if (!file) return;
+  let data;
+  try { data = JSON.parse(await file.text()); } catch (e) { toast('⚠️ 저장 파일을 읽을 수 없어요'); return; }
+  if (!data || data.v !== 1 || typeof data.bells !== 'number' || !data.inv || !Array.isArray(data.placed)) {
+    toast('⚠️ 이 게임의 저장 파일이 아니에요'); return;
+  }
+  if (!confirm('지금 진행 상황을 이 저장 파일 내용으로 바꿀까요?')) return;
+  S = data; normalize();
+  Object.keys(S.inv).forEach(id => { if (!ITEMS[id]) delete S.inv[id]; });
+  if (!S.char) S.char = {gender:'boy', hair:HAIR_COLORS[0], skin:SKINS[0]};
+  if (S.holding && !S.inv[S.holding]) S.holding = null;
+  warp(S.x, S.y, S.dir || 'down');
+  fish = {state:'idle'}; bugs = [];
+  save(); renderInv(); updateHUD(); closeModals();
+  toast('📂 불러오기 완료! 이어서 플레이해요');
+  fpNotice();
+};
+const muteBtn = document.getElementById('muteBtn');
+function toggleMute() { muted = !muted; muteBtn.textContent = muted ? '🔇' : '🔊'; }
+muteBtn.onclick = toggleMute;
+document.getElementById('resetBtn').onclick = () => {
+  if (!confirm('정말 처음부터 다시 시작할까요? 모든 진행 상황이 사라져요.')) return;
+  S = freshState(); normalize(); S.char = {gender:'boy', hair:HAIR_COLORS[0], skin:SKINS[0]};
+  warp(S.x, S.y, S.dir);
+  fish = {state:'idle'}; save(); renderInv(); updateHUD();
+  helpEl.classList.add('hidden');
+  openDress('✨ 캐릭터 만들기');
+};
+
+// ---------- HUD / 인벤토리 ----------
+const invEl = document.getElementById('invbar');
+function renderInv() {
+  const ids = Object.keys(S.inv);
+  if (!ids.length) { invEl.innerHTML = '<span class="empty">주머니가 비어 있어요</span>'; return; }
+  const order = {quest:-1, furn:0, seed:1, flower:2, fish:3, bug:4, treasure:5, fruit:6, junk:7};
+  ids.sort((a, b) => order[ITEMS[a].type] - order[ITEMS[b].type]);
+  invEl.innerHTML = ids.map(id => {
+    const it = ITEMS[id];
+    return `<button class="slot ${S.holding === id ? 'sel' : ''}" data-id="${id}" title="${it.name}">
+      ${it.type === 'seed' ? '<span class="tag">씨앗</span>' : ''}${it.emoji}<span class="n">${S.inv[id]}</span></button>`;
+  }).join('');
+}
+invEl.addEventListener('click', e => {
+  const s = e.target.closest('.slot');
+  if (!s) return;
+  const id = s.dataset.id, it = ITEMS[id];
+  if (PLACEABLE.includes(it.type)) { S.holding = S.holding === id ? null : id; renderInv(); updateHUD(); }
+  else if (it.type === 'quest') toast('💌 친구에게 전해줄 편지예요. 받을 친구에게 말을 걸어 전해주세요');
+  else toast(`${it.emoji} ${it.name} — 상점에서 ${it.sell.toLocaleString()}벨에 팔 수 있어요`);
+});
+const bellsN = document.getElementById('bellsN'), holdEl = document.getElementById('holding'), clockEl = document.getElementById('clock');
+function updateHUD() {
+  bellsN.textContent = S.bells.toLocaleString();
+  if (S.holding && ITEMS[S.holding]) {
+    const it = ITEMS[S.holding];
+    holdEl.className = 'on';
+    holdEl.textContent = `✋ ${it.emoji} ${it.name} 들고 있음 — 빈 바닥을 보고 Space로 ${it.type === 'furn' ? '설치' : '심기'} · Esc 취소`;
+  } else {
+    holdEl.className = '';
+    holdEl.textContent = '아이템 칸을 눌러 가구나 씨앗을 손에 들 수 있어요';
+  }
+}
+function nightAlpha() {
+  const d = new Date(), h = d.getHours() + d.getMinutes() / 60;
+  clockEl.textContent = `${h >= 6 && h < 18 ? '☀️' : h >= 18 && h < 20 ? '🌇' : '🌙'} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  if (h >= 20 || h < 5) return {c:'20,30,80', a:0.38};
+  if (h >= 18) return {c:'255,140,60', a:0.16};
+  if (h < 6) return {c:'80,90,160', a:0.22};
+  return null;
+}
+let night = nightAlpha();
+setInterval(() => { night = nightAlpha(); }, 10000);
+
+// ---------- 입력 ----------
+const KEYMAP = {ArrowUp:'up', KeyW:'up', ArrowDown:'down', KeyS:'down', ArrowLeft:'left', KeyA:'left', ArrowRight:'right', KeyD:'right'};
+const held = [];
+addEventListener('keydown', e => {
+  // 채팅 등 입력칸에 글을 쓰는 중에는 게임 조작을 하지 않는다
+  if (e.target instanceof HTMLInputElement) { if (e.code === 'Escape') e.target.blur(); return; }
+  const d = KEYMAP[e.code];
+  if (d || e.code === 'Space') e.preventDefault();
+  if (modalOpen()) {
+    if (!miniEl.classList.contains('hidden')) {
+      if (d) { if (!held.includes(d)) held.push(d); return; }
+      if (e.code === 'Space' && !e.repeat && MG.state !== 'play') { startMini(); return; }
+    }
+    if (e.code === 'Escape') closeModals();
+    else if ((e.code === 'Space' || e.code === 'Enter') && !e.repeat && talkPrimary && !talkEl.classList.contains('hidden')) { e.preventDefault(); talkPrimary(); }
+    return;
+  }
+  if (d) {
+    if (!held.includes(d)) held.push(d);
+    if (fish.state !== 'idle') { fish = {state:'idle'}; toast('낚싯대를 거뒀어요.'); }
+    return;
+  }
+  if (e.repeat) return;
+  if (e.code === 'Space' || e.code === 'Enter') action();
+  else if (e.code === 'KeyR') retrieve();
+  else if (e.code === 'Escape') { S.holding = null; renderInv(); updateHUD(); }
+  else if (e.code === 'KeyH') helpEl.classList.remove('hidden');
+  else if (e.code === 'KeyC') openDress();
+  else if (e.code === 'KeyT') openTheme();
+  else if (e.code === 'KeyM') toggleMute();
+  else if (e.code === 'Slash') { e.preventDefault(); openChat(); }
+});
+addEventListener('keyup', e => { const d = KEYMAP[e.code]; const i = held.indexOf(d); if (i >= 0) held.splice(i, 1); });
+addEventListener('blur', () => held.length = 0);
+
+// ---------- 업데이트 ----------
+const MOVE_T = 0.16;
+function update(dt, now) {
+  if (P.moving) {
+    P.t += dt / MOVE_T; P.walk += dt;
+    if (P.t >= 1) { P.moving = false; P.x = P.tx; P.y = P.ty; onArrive(); }
+  }
+  if (!P.moving && !modalOpen() && fish.state === 'idle' && held.length) {
+    const d = held[held.length - 1];
+    P.dir = d;
+    const [dx, dy] = DIRS[d], nx = P.x + dx, ny = P.y + dy;
+    if (!blocked(nx, ny)) { P.moving = true; P.t = 0; P.tx = nx; P.ty = ny; }
+    else if (onIsland() && same(nx, ny, HOME_DOOR)) enterHome();
+  }
+  updateFishing(now);
+  if (!modalOpen()) { updateFriends(dt, now); updateBugs(dt, now); }
+  if (onIsland()) updateDigs(now);
+  const t = Date.now();
+  let changed = false;
+  S.placed.forEach(p => {
+    if (p.kind === 'flower' && p.stage < 3 && p.wateredAt && t - p.wateredAt >= GROW_MS) {
+      p.stage++; p.wateredAt = null; changed = true;
+      if (p.s === S.scene) addSparkle(p.x, p.y, p.stage === 3 ? '🌟' : '🌱');
+      if (p.stage === 3) toast(`${FLOWER_BY_ID[p.fid].emoji} ${FLOWER_BY_ID[p.fid].name}이(가) 활짝 피었어요!`);
+    }
+  });
+  if (changed) save();
+  for (let i = sparkles.length - 1; i >= 0; i--) if (now - sparkles[i].born > 900) sparkles.splice(i, 1);
+}
+function addSparkle(x, y, e) { sparkles.push({x, y, e, born:performance.now()}); }
+
+// ---------- 그리기 공통 ----------
+const hash = (x, y) => (((x * 73856093) ^ (y * 19349663)) >>> 0) % 1000;
+function emoji(ch, x, y, size, g = ctx) {
+  // 컬러 이모지는 직전 fillStyle의 투명도를 그대로 따라가므로 항상 불투명색으로 그린다
+  g.font = `${size}px ${EMOJI}`; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillStyle = '#000';
+  g.fillText(ch, x, y);
+}
+function shadow(cx, cy, rx, ry, g = ctx) {
+  g.fillStyle = 'rgba(40,70,30,.22)';
+  g.beginPath(); g.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2); g.fill();
+}
+function label(text, cx, cy, bg = '#fffaf0', fg = '#5a4632', border = '#d9c39b') {
+  ctx.font = `bold 13px ${FONT}`;
+  const w = ctx.measureText(text).width + 16;
+  ctx.fillStyle = bg; ctx.strokeStyle = border; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.roundRect(cx - w / 2, cy - 11, w, 22, 10); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = fg; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(text, cx, cy + 1);
+}
+
+// ---------- 캐릭터 ----------
+function drawCharacter(g, px, py, dir, bob) {
+  const {gender, hair, skin} = S.char, girl = gender === 'girl';
+  const top = CLOTH[S.wear.top] || CLOTH.tee_blue, hat = S.wear.hat && CLOTH[S.wear.hat];
+  const hy = py - 12 - bob, bx = px - 9, by = py - 2 - bob;
+  const fill = (c, f) => { g.fillStyle = c; g.beginPath(); f(); g.fill(); };
+  shadow(px, py + 17, 12, 5, g);
+  // 긴 머리 뒷부분
+  if (girl) fill(hair, () => g.roundRect(px - 12.5, hy - 4, 25, dir === 'up' ? 24 : 21, 9));
+  const skirt = top.style === 'dress' || top.style === 'hanbok';
+  // 다리·신발
+  g.fillStyle = skirt ? skin : top.style === 'overall' ? top.c2 : '#3d5fa8';
+  g.fillRect(px - 7, py + 11 - bob, 5, 5); g.fillRect(px + 2, py + 11 - bob, 5, 5);
+  g.fillStyle = '#6b4a2e'; g.fillRect(px - 7.5, py + 15 - bob, 6, 3); g.fillRect(px + 1.5, py + 15 - bob, 6, 3);
+  // 팔
+  if (top.style === 'hanbok') {
+    ['#ff6f91', '#ffd84d', '#7cc47f', '#5b8def'].forEach((c, i) => {
+      g.fillStyle = c; g.fillRect(px - 13, by + 1 + i * 2.5, 4, 2.5); g.fillRect(px + 9, by + 1 + i * 2.5, 4, 2.5);
+    });
+  } else {
+    g.fillStyle = top.c1;
+    g.beginPath(); g.roundRect(px - 13, by + 1, 5, 9, 2); g.roundRect(px + 8, by + 1, 5, 9, 2); g.fill();
+  }
+  fill(skin, () => { g.arc(px - 10.5, by + 11.5, 2.6, 0, Math.PI * 2); g.arc(px + 10.5, by + 11.5, 2.6, 0, Math.PI * 2); });
+  // 몸통
+  const body = () => g.roundRect(bx, by, 18, 15, 6);
+  const skirtPath = (y0, y1, w0, w1) => { g.moveTo(px - w0, y0); g.lineTo(px + w0, y0); g.lineTo(px + w1, y1); g.lineTo(px - w1, y1); g.closePath(); };
+  switch (top.style) {
+    case 'stripe':
+      fill(top.c1, body);
+      g.save(); g.beginPath(); body(); g.clip(); g.fillStyle = top.c2;
+      [2, 7, 12].forEach(o => g.fillRect(bx, by + o, 18, 2.5)); g.restore();
+      break;
+    case 'dots':
+      fill(top.c1, body);
+      g.fillStyle = top.c2;
+      [[-4,4],[3,3],[-1,9],[5,10],[-6,11]].forEach(([dx, dy]) => { g.beginPath(); g.arc(px + dx, by + dy, 1.6, 0, Math.PI * 2); g.fill(); });
+      break;
+    case 'hood':
+      fill(top.c1, body);
+      fill(top.c2, () => g.ellipse(px, by + 1, 8, 3, 0, 0, Math.PI * 2));
+      fill(top.c2, () => g.roundRect(px - 6, by + 8, 12, 5, 2));
+      g.strokeStyle = '#fff'; g.lineWidth = 1.2; g.beginPath();
+      g.moveTo(px - 2.5, by + 2); g.lineTo(px - 2.5, by + 6); g.moveTo(px + 2.5, by + 2); g.lineTo(px + 2.5, by + 6); g.stroke();
+      break;
+    case 'overall':
+      fill(top.c1, body);
+      fill(top.c2, () => g.roundRect(bx, by + 7, 18, 8, [0, 0, 6, 6]));
+      g.fillStyle = top.c2; g.fillRect(px - 6, by, 3, 8); g.fillRect(px + 3, by, 3, 8);
+      fill('#ffd36b', () => { g.arc(px - 4.5, by + 7.5, 1.5, 0, Math.PI * 2); g.arc(px + 4.5, by + 7.5, 1.5, 0, Math.PI * 2); });
+      break;
+    case 'dress':
+      fill(top.c1, () => g.roundRect(px - 8, by, 16, 8, [6, 6, 0, 0]));
+      fill(top.c1, () => skirtPath(by + 7, by + 16, 8, 13));
+      g.fillStyle = top.c2; g.fillRect(px - 8, by + 6, 16, 2.5);
+      break;
+    case 'sailor':
+      fill(top.c1, body);
+      fill(top.c2, () => { g.moveTo(bx + 1, by + 1); g.lineTo(bx + 17, by + 1); g.lineTo(px, by + 8); g.closePath(); });
+      fill('#e8463c', () => { g.moveTo(px - 2.5, by + 7); g.lineTo(px + 2.5, by + 7); g.lineTo(px, by + 11); g.closePath(); });
+      g.fillStyle = top.c2; g.fillRect(bx, by + 12, 18, 2);
+      break;
+    case 'hanbok':
+      fill(top.c2, () => skirtPath(by + 6, by + 18, 9, 13));
+      fill(top.c1, () => g.roundRect(px - 9, by, 18, 8, [6, 6, 2, 2]));
+      g.strokeStyle = '#fff'; g.lineWidth = 1.5; g.beginPath(); g.moveTo(px - 5, by); g.lineTo(px, by + 5); g.lineTo(px + 5, by); g.stroke();
+      fill('#e8463c', () => { g.moveTo(px, by + 5); g.lineTo(px + 3, by + 12); g.lineTo(px + 5, by + 11); g.closePath(); });
+      break;
+    default:
+      fill(top.c1, body);
+  }
+  // 머리(얼굴)
+  fill(skin, () => g.arc(px, hy, 12, 0, Math.PI * 2));
+  g.fillStyle = hair;
+  if (dir === 'up') {
+    g.beginPath(); g.arc(px, hy, 12.6, 0, Math.PI * 2); g.fill();
+  } else {
+    g.beginPath(); g.arc(px, hy - 1, 12.6, Math.PI, Math.PI * 2); g.fill();
+    g.beginPath(); g.ellipse(px, hy - 3, 12.6, 5, 0, 0, Math.PI); g.fill();
+    if (dir === 'left') { g.beginPath(); g.arc(px + 1, hy, 12, -Math.PI / 2, Math.PI / 2); g.fill(); }
+    if (dir === 'right') { g.beginPath(); g.arc(px - 1, hy, 12, Math.PI / 2, Math.PI * 1.5); g.fill(); }
+    if (girl) {
+      if (dir !== 'right') { g.beginPath(); g.roundRect(px - 13, hy - 4, 5, 17, 3); g.fill(); }
+      if (dir !== 'left') { g.beginPath(); g.roundRect(px + 8, hy - 4, 5, 17, 3); g.fill(); }
+    } else {
+      if (dir !== 'right') g.fillRect(px - 12.5, hy - 3, 3, 7);
+      if (dir !== 'left') g.fillRect(px + 9.5, hy - 3, 3, 7);
+    }
+  }
+  // 눈
+  const eye = (ex) => {
+    g.fillStyle = '#3a2a1a'; g.beginPath(); g.ellipse(ex, hy + 3, 1.8, 2.4, 0, 0, Math.PI * 2); g.fill();
+    g.fillStyle = '#fff'; g.fillRect(ex - 0.8, hy + 1.6, 1.2, 1.2);
+    if (girl) { g.strokeStyle = '#3a2a1a'; g.lineWidth = 1; g.beginPath(); g.moveTo(ex + (ex < px ? -1.5 : 1.5), hy + 1); g.lineTo(ex + (ex < px ? -3.5 : 3.5), hy - 0.5); g.stroke(); }
+  };
+  const blush = (bx2) => { g.fillStyle = 'rgba(255,130,150,.55)'; g.beginPath(); g.ellipse(bx2, hy + 7, 2.6, 1.5, 0, 0, Math.PI * 2); g.fill(); };
+  if (dir === 'down') { eye(px - 4.5); eye(px + 4.5); blush(px - 8); blush(px + 8); }
+  else if (dir === 'left') { eye(px - 6); blush(px - 7); }
+  else if (dir === 'right') { eye(px + 6); blush(px + 7); }
+  if (hat) drawHat(g, hat, px, hy, dir);
+}
+
+function drawHat(g, h, px, hy, dir) {
+  const fill = (c, f) => { g.fillStyle = c; g.beginPath(); f(); g.fill(); };
+  switch (h.style) {
+    case 'straw':
+      fill('#e2bf62', () => g.ellipse(px, hy - 7, 19, 5.5, 0, 0, Math.PI * 2));
+      fill('#f0d27a', () => g.arc(px, hy - 8, 10, Math.PI, Math.PI * 2));
+      g.fillStyle = '#e8463c'; g.fillRect(px - 10, hy - 11, 20, 3);
+      break;
+    case 'cap':
+      fill(h.c1, () => g.arc(px, hy - 3, 13, Math.PI, Math.PI * 2));
+      if (dir === 'down') fill(h.c1, () => g.ellipse(px, hy - 3, 11, 3.5, 0, 0, Math.PI));
+      if (dir === 'left') fill(h.c1, () => g.ellipse(px - 13, hy - 3.5, 7, 2.5, 0, 0, Math.PI * 2));
+      if (dir === 'right') fill(h.c1, () => g.ellipse(px + 13, hy - 3.5, 7, 2.5, 0, 0, Math.PI * 2));
+      fill('#fff', () => g.arc(px, hy - 15.5, 1.8, 0, Math.PI * 2));
+      break;
+    case 'ribbon': {
+      const rx = px + 6, ry = hy - 12;
+      fill(h.c1, () => { g.moveTo(rx, ry); g.lineTo(rx - 9, ry - 6); g.lineTo(rx - 9, ry + 6); g.closePath(); });
+      fill(h.c1, () => { g.moveTo(rx, ry); g.lineTo(rx + 9, ry - 6); g.lineTo(rx + 9, ry + 6); g.closePath(); });
+      fill('#d94f78', () => g.arc(rx, ry, 3, 0, Math.PI * 2));
+      break;
+    }
+    case 'flower':
+      emoji('🌸', px + 9, hy - 8, 12, g);
+      break;
+    case 'beanie':
+      fill(h.c1, () => g.arc(px, hy - 2, 13.2, Math.PI, Math.PI * 2));
+      g.fillStyle = '#5aa860'; g.fillRect(px - 13.2, hy - 4, 26.4, 4);
+      fill('#fff', () => g.arc(px, hy - 16, 4, 0, Math.PI * 2));
+      break;
+    case 'crown':
+      fill('#f2c230', () => {
+        g.moveTo(px - 9, hy - 9); g.lineTo(px - 9, hy - 20); g.lineTo(px - 4.5, hy - 14); g.lineTo(px, hy - 22);
+        g.lineTo(px + 4.5, hy - 14); g.lineTo(px + 9, hy - 20); g.lineTo(px + 9, hy - 9); g.closePath();
+      });
+      fill('#e8463c', () => g.arc(px, hy - 12.5, 2, 0, Math.PI * 2));
+      fill('#5b8def', () => { g.arc(px - 5.5, hy - 12, 1.5, 0, Math.PI * 2); g.arc(px + 5.5, hy - 12, 1.5, 0, Math.PI * 2); });
+      break;
+  }
+}
+
+function drawPlayer(now) {
+  const t = P.moving ? P.t : 0;
+  const px = (P.x + (P.tx - P.x) * t) * TS + TS / 2, py = (P.y + (P.ty - P.y) * t) * TS + TS / 2;
+  const bob = P.moving ? Math.abs(Math.sin(P.walk * 18)) * 3 : 0;
+  drawCharacter(ctx, px, py, P.dir, bob);
+  const hy = py - 12 - bob;
+  if (now < beeUntil) {
+    for (let i = 0; i < 3; i++) { const a = now / 150 + i * 2.1; emoji('🐝', px + Math.cos(a) * 22, hy + Math.sin(a) * 14, 16); }
+  }
+  if (fish.state !== 'idle') drawLine(px, py, now);
+}
+
+// ---------- 너구리 ----------
+function drawRaccoon(now) {
+  const cx = NPC.x * TS + TS / 2, cy = NPC.y * TS + TS / 2;
+  const b = Math.sin(now / 400) * 1.5, near = Math.abs(P.x - NPC.x) + Math.abs(P.y - NPC.y) <= 2;
+  shadow(cx, cy + 17, 16, 5);
+  // 꼬리
+  ctx.save(); ctx.translate(cx + 10, cy + 10); ctx.rotate(Math.sin(now / 300) * 0.25 - 0.5);
+  ctx.beginPath(); ctx.ellipse(9, 0, 12, 5.5, 0, 0, Math.PI * 2); ctx.fillStyle = '#9a9086'; ctx.fill();
+  ctx.clip(); ctx.fillStyle = '#4a423b'; ctx.fillRect(4, -6, 3.5, 12); ctx.fillRect(12, -6, 3.5, 12); ctx.fillRect(19, -6, 3, 12);
+  ctx.restore();
+  // 몸통 + 앞치마
+  ctx.fillStyle = '#9a9086'; ctx.beginPath(); ctx.roundRect(cx - 12, cy - 3 + b, 24, 20, 9); ctx.fill();
+  ctx.fillStyle = '#4a423b'; ctx.fillRect(cx - 9, cy + 15 + b, 6, 3); ctx.fillRect(cx + 3, cy + 15 + b, 6, 3);
+  ctx.fillStyle = '#5aa860'; ctx.beginPath(); ctx.roundRect(cx - 9, cy + 1 + b, 18, 14, 4); ctx.fill();
+  ctx.fillStyle = '#b6e3a6'; ctx.beginPath(); ctx.ellipse(cx, cy + 8 + b, 3.5, 2.2, 0.6, 0, Math.PI * 2); ctx.fill();
+  // 머리
+  const hy = cy - 15 + b;
+  ctx.fillStyle = '#9a9086';
+  ctx.beginPath(); ctx.arc(cx - 11, hy - 10, 6.5, 0, Math.PI * 2); ctx.arc(cx + 11, hy - 10, 6.5, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#4a423b';
+  ctx.beginPath(); ctx.arc(cx - 11, hy - 10, 3.2, 0, Math.PI * 2); ctx.arc(cx + 11, hy - 10, 3.2, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#aea499'; ctx.beginPath(); ctx.ellipse(cx, hy, 16, 13.5, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#f3ece4'; ctx.beginPath(); ctx.ellipse(cx, hy - 9, 3, 4, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#3d3631';
+  ctx.beginPath(); ctx.ellipse(cx - 6.5, hy + 0.5, 6.5, 4.5, -0.25, 0, Math.PI * 2); ctx.ellipse(cx + 6.5, hy + 0.5, 6.5, 4.5, 0.25, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.arc(cx - 6, hy, 2, 0, Math.PI * 2); ctx.arc(cx + 6, hy, 2, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#f3ece4'; ctx.beginPath(); ctx.ellipse(cx, hy + 7, 7.5, 5, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#2b2420'; ctx.beginPath(); ctx.ellipse(cx, hy + 4.5, 2.6, 2, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = '#2b2420'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(cx, hy + 7, 2.5, 0.2, Math.PI - 0.2); ctx.stroke();
+  // 이름표 / 말풍선
+  if (near && !modalOpen()) label('🦝 Space로 거래해요!', cx + 30, hy - 30, '#fffaf0', '#5a4632', '#5aa860');
+  else {
+    label('너굴', cx, hy - 26, '#5aa860', '#fff', '#3f8a45');
+    const a = Math.abs(Math.sin(now / 300)) * 4;
+    ctx.fillStyle = '#f2b33d';
+    ctx.beginPath(); ctx.moveTo(cx - 5, hy - 46 - a); ctx.lineTo(cx + 5, hy - 46 - a); ctx.lineTo(cx, hy - 40 - a); ctx.closePath(); ctx.fill();
+  }
+}
+
+// ---------- 치이카와와 친구들 ----------
+function drawFriend(g, id, cx, cy, bob) {
+  const line = '#6b5a4e', hy = cy - 7 - bob, PAT = '#5873a8';
+  const base = {usagi:'#fbe6a2', rakko:'#a87b55'}[id] || '#ffffff';
+  const fill = (c, f, stroke = true) => {
+    g.fillStyle = c; g.beginPath(); f(); g.fill();
+    if (stroke) { g.strokeStyle = line; g.lineWidth = 1.4; g.stroke(); }
+  };
+  const head = () => g.ellipse(cx, hy, 16, 13.5, 0, 0, Math.PI * 2);
+  shadow(cx, cy + 17, 12, 4, g);
+  // 귀 (머리 뒤)
+  if (id === 'chiikawa') {
+    fill(base, () => g.arc(cx - 10, hy - 10, 4.5, 0, Math.PI * 2));
+    fill(base, () => g.arc(cx + 10, hy - 10, 4.5, 0, Math.PI * 2));
+  } else if (id === 'hachiware') {
+    fill(PAT, () => { g.moveTo(cx - 15, hy - 4); g.lineTo(cx - 12, hy - 19); g.lineTo(cx - 3, hy - 12); g.closePath(); });
+    fill(PAT, () => { g.moveTo(cx + 15, hy - 4); g.lineTo(cx + 12, hy - 19); g.lineTo(cx + 3, hy - 12); g.closePath(); });
+  } else if (id === 'momonga') {
+    fill('#f3eee8', () => g.ellipse(cx + 13, cy + 3 - bob, 8, 12, 0.5, 0, Math.PI * 2));
+    fill(base, () => g.ellipse(cx - 10, hy - 11, 4.5, 6, -0.4, 0, Math.PI * 2));
+    fill(base, () => g.ellipse(cx + 10, hy - 11, 4.5, 6, 0.4, 0, Math.PI * 2));
+  } else if (id === 'rakko') {
+    fill(base, () => g.arc(cx - 12, hy - 7, 3.8, 0, Math.PI * 2));
+    fill(base, () => g.arc(cx + 12, hy - 7, 3.8, 0, Math.PI * 2));
+  } else {
+    fill(base, () => g.ellipse(cx - 5, hy - 19, 4, 11, -0.12, 0, Math.PI * 2));
+    fill(base, () => g.ellipse(cx + 5, hy - 19, 4, 11, 0.12, 0, Math.PI * 2));
+    fill('#ffc4cf', () => g.ellipse(cx - 5, hy - 18, 1.7, 7, -0.12, 0, Math.PI * 2), false);
+    fill('#ffc4cf', () => g.ellipse(cx + 5, hy - 18, 1.7, 7, 0.12, 0, Math.PI * 2), false);
+  }
+  // 몸
+  fill(base, () => g.ellipse(cx - 4.5, cy + 16, 4, 2.5, 0, 0, Math.PI * 2));
+  fill(base, () => g.ellipse(cx + 4.5, cy + 16, 4, 2.5, 0, 0, Math.PI * 2));
+  fill(base, () => g.roundRect(cx - 9, cy + 2 - bob, 18, 14, 7));
+  fill(base, () => g.ellipse(cx - 10, cy + 7 - bob, 3, 4, 0.5, 0, Math.PI * 2));
+  fill(base, () => g.ellipse(cx + 10, cy + 7 - bob, 3, 4, -0.5, 0, Math.PI * 2));
+  // 머리
+  fill(base, head);
+  if (id === 'hachiware') {
+    g.save(); g.beginPath(); head(); g.clip();
+    g.fillStyle = PAT; g.beginPath();
+    g.moveTo(cx - 17, hy + 2); g.lineTo(cx - 6, hy - 3); g.lineTo(cx, hy - 11); g.lineTo(cx + 6, hy - 3);
+    g.lineTo(cx + 17, hy + 2); g.lineTo(cx + 17, hy - 16); g.lineTo(cx - 17, hy - 16); g.closePath(); g.fill();
+    g.restore();
+    g.strokeStyle = line; g.lineWidth = 1.4; g.beginPath(); head(); g.stroke();
+  }
+  if (id === 'rakko') fill('#f3e2c7', () => g.ellipse(cx, hy + 4, 11, 8, 0, 0, Math.PI * 2), false);
+  // 얼굴
+  if (id === 'usagi' || id === 'rakko') {
+    fill('#2b2420', () => { g.arc(cx - 5, hy + 1, 1.5, 0, Math.PI * 2); g.arc(cx + 5, hy + 1, 1.5, 0, Math.PI * 2); }, false);
+  } else if (id === 'momonga') {
+    fill('#2b2420', () => { g.ellipse(cx - 6, hy + 1.5, 3.2, 3.8, 0, 0, Math.PI * 2); g.ellipse(cx + 6, hy + 1.5, 3.2, 3.8, 0, 0, Math.PI * 2); }, false);
+    fill('#fff', () => { g.arc(cx - 7, hy, 1.3, 0, Math.PI * 2); g.arc(cx + 5, hy, 1.3, 0, Math.PI * 2); g.arc(cx - 5, hy + 3, 0.7, 0, Math.PI * 2); g.arc(cx + 7, hy + 3, 0.7, 0, Math.PI * 2); }, false);
+  } else {
+    fill('#2b2420', () => { g.ellipse(cx - 5.5, hy + 2, 2.3, 2.9, 0, 0, Math.PI * 2); g.ellipse(cx + 5.5, hy + 2, 2.3, 2.9, 0, 0, Math.PI * 2); }, false);
+    fill('#fff', () => { g.arc(cx - 6.2, hy + 1, 0.9, 0, Math.PI * 2); g.arc(cx + 4.8, hy + 1, 0.9, 0, Math.PI * 2); }, false);
+  }
+  fill('#ffb3c1', () => { g.ellipse(cx - 10.5, hy + 6, 3.4, 2, 0, 0, Math.PI * 2); g.ellipse(cx + 10.5, hy + 6, 3.4, 2, 0, 0, Math.PI * 2); }, false);
+  g.strokeStyle = '#2b2420'; g.lineWidth = 1.2;
+  if (id === 'chiikawa') { g.beginPath(); g.arc(cx, hy + 5.5, 1.8, 0.2, Math.PI - 0.2); g.stroke(); }
+  else if (id === 'rakko') {
+    fill('#4a3426', () => g.ellipse(cx, hy + 3.5, 2.4, 1.7, 0, 0, Math.PI * 2), false);
+    g.strokeStyle = '#4a3426'; g.beginPath(); g.arc(cx, hy + 5, 2, 0.3, Math.PI - 0.3); g.stroke();
+    g.strokeStyle = '#9aa3ad'; g.lineWidth = 2.2; g.beginPath(); g.moveTo(cx + 12, cy + 9 - bob); g.lineTo(cx + 20, cy - 8 - bob); g.stroke();
+    g.strokeStyle = '#6b4a2e'; g.lineWidth = 2; g.beginPath(); g.moveTo(cx + 9, cy + 7 - bob); g.lineTo(cx + 15, cy + 10 - bob); g.stroke();
+  }
+  else if (id === 'hachiware' || id === 'momonga') { g.beginPath(); g.arc(cx - 1.7, hy + 5.5, 1.7, 0, Math.PI); g.moveTo(cx + 3.4, hy + 5.5); g.arc(cx + 1.7, hy + 5.5, 1.7, 0, Math.PI); g.stroke(); }
+  else fill('#c4475a', () => g.ellipse(cx, hy + 6.5, 3.4, 2.8, 0, 0, Math.PI * 2), false);
+}
+
+function drawFriendOnMap(f, now) {
+  const t = f.moving ? f.t : 0;
+  const cx = (f.x + (f.tx - f.x) * t) * TS + TS / 2, cy = (f.y + (f.ty - f.y) * t) * TS + TS / 2;
+  const hop = f.id === 'usagi' ? Math.abs(Math.sin(now / 180)) * 4 : f.moving ? Math.abs(Math.sin(t * Math.PI)) * 3 : 0;
+  drawFriend(ctx, f.id, cx, cy, hop);
+  const fr = FRIEND[f.id], st = S.friends[f.id], hy = cy - 7 - hop;
+  const near = Math.abs(P.x - f.x) + Math.abs(P.y - f.y) <= 1;
+  label(near ? `${fr.name} · Space` : fr.name, cx, cy + 28, '#fffaf0', '#5a4632', near ? '#4f9a53' : '#d9c39b');
+  // 미션 표시: ! 새 미션 / … 진행 중 / ★ 완료 가능
+  let mark = '!', col = '#f2b33d';
+  if (letterFor(f.id) && S.inv.letter) { mark = '✉'; col = '#ff6f91'; }
+  else if (st.active) {
+    if (questProgress(f.id) >= curQuest(f.id).n) { mark = '★'; col = '#4f9a53'; }
+    else { mark = '…'; col = '#9a8670'; }
+  }
+  const a = Math.abs(Math.sin(now / 300)) * 3, my = hy - (f.id === 'usagi' ? 38 : 28) - a;
+  ctx.fillStyle = '#fff'; ctx.strokeStyle = col; ctx.lineWidth = 2.5;
+  ctx.beginPath(); ctx.arc(cx, my, 10, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = col; ctx.font = `bold 15px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(mark, cx, my + 1);
+}
+
+// ---------- 오락기 · 곤충 · 땅 파기 ----------
+function drawArcade(now) {
+  const x = ARCADE[0] * TS, y = ARCADE[1] * TS, cx = x + TS / 2;
+  shadow(cx, y + TS - 3, 17, 5);
+  ctx.fillStyle = '#8a6bd1'; ctx.beginPath(); ctx.roundRect(x + 5, y - 22, TS - 10, TS + 18, 7); ctx.fill();
+  ctx.fillStyle = '#6a4fb0'; ctx.fillRect(x + 5, y + 8, TS - 10, 4);
+  ctx.fillStyle = '#2b2148'; ctx.beginPath(); ctx.roundRect(x + 9, y - 16, TS - 18, 20, 3); ctx.fill();
+  ctx.fillStyle = `hsl(${(now / 8) % 360},85%,65%)`; ctx.fillRect(x + 13, y - 12, TS - 26, 12);
+  ctx.fillStyle = '#e8463c'; ctx.beginPath(); ctx.arc(cx - 6, y + 20, 3.5, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#ffd36b'; ctx.beginPath(); ctx.arc(cx + 6, y + 20, 3.5, 0, Math.PI * 2); ctx.fill();
+  const near = Math.abs(P.x - ARCADE[0]) + Math.abs(P.y - ARCADE[1]) <= 1;
+  label(near ? '🎮 Space: 게임하기' : '🎮 오락기', cx, y - 34, near ? '#8a6bd1' : '#fffaf0', near ? '#fff' : '#5a4632', '#6a4fb0');
+}
+function drawBug(b, now) {
+  const cx = b.x * TS + TS / 2, cy = b.y * TS + TS / 2, t = now / 1000 + b.seed;
+  if (b.fly) emoji(b.emoji, cx + Math.sin(t * 2) * 8, cy - 8 + Math.sin(t * 5) * 4, 20);
+  else { shadow(cx, cy + 9, 6, 2); emoji(b.emoji, cx + Math.sin(t * 1.3) * 3, cy + 4, 18); }
+}
+function drawDig(d, now) {
+  const cx = d.x * TS + TS / 2, cy = d.y * TS + TS / 2 + 4, a = (Math.sin(now / 250 + d.x) + 1) / 2;
+  ctx.strokeStyle = '#6b4a2e'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(cx - 7, cy - 5); ctx.lineTo(cx + 7, cy + 5); ctx.moveTo(cx + 7, cy - 5); ctx.lineTo(cx - 7, cy + 5); ctx.stroke();
+  ctx.lineCap = 'butt';
+  ctx.fillStyle = `rgba(255,236,120,${0.45 + a * 0.55})`; ctx.font = `bold ${11 + a * 5}px ${FONT}`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('✦', cx + 11, cy - 11);
+}
+
+// ---------- 집 테마 그리기 ----------
+function drawWall(x, y, w, h) {
+  const t = WALL[S.theme.wall] || WALLS[0];
+  ctx.save(); ctx.beginPath(); ctx.rect(x, y, w, h); ctx.clip();
+  ctx.fillStyle = t.base; ctx.fillRect(x, y, w, h);
+  ctx.fillStyle = t.c2;
+  if (t.pat === 'stripe') for (let xx = x + 6; xx < x + w; xx += 22) ctx.fillRect(xx, y, 8, h);
+  else if (t.pat === 'plank') for (let xx = x; xx < x + w; xx += 30) ctx.fillRect(xx, y, 3, h);
+  else if (t.pat === 'check') {
+    for (let yy = 0; yy < h; yy += 20) for (let xx = 0; xx < w; xx += 20) if ((xx + yy) / 20 % 2) ctx.fillRect(x + xx, y + yy, 20, 20);
+  } else {
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    let row = 0;
+    for (let yy = y + 14; yy < y + h; yy += 26, row++) for (let xx = x + 14 + (row % 2) * 17; xx < x + w; xx += 34) {
+      if (t.pat === 'cloud') { ctx.beginPath(); ctx.ellipse(xx, yy, 8, 4, 0, 0, Math.PI * 2); ctx.ellipse(xx + 5, yy - 3, 5, 4, 0, 0, Math.PI * 2); ctx.fill(); }
+      else if (t.pat === 'heart') { ctx.font = `bold 14px ${FONT}`; ctx.fillText('♥', xx, yy); }
+      else if (t.pat === 'leaf') { ctx.beginPath(); ctx.ellipse(xx, yy, 7, 3, -0.6, 0, Math.PI * 2); ctx.fill(); }
+      else if (t.pat === 'star') { ctx.font = `${9 + hash(xx, yy) % 6}px ${FONT}`; ctx.fillText('★', xx, yy); }
+    }
+  }
+  ctx.restore();
+}
+function drawFloor(x, y, w, h) {
+  const t = FLOOR[S.theme.floor] || FLOORS[0];
+  for (let ty = 0; ty < h / TS; ty++) for (let tx = 0; tx < w / TS; tx++) {
+    const px = x + tx * TS, py = y + ty * TS, hh = hash(tx, ty);
+    switch (t.pat) {
+      case 'plank':
+        ctx.fillStyle = ty % 2 ? t.c1 : t.c2; ctx.fillRect(px, py, TS, TS);
+        ctx.fillStyle = 'rgba(120,80,40,.25)'; ctx.fillRect(px, py, TS, 2);
+        if ((tx * 2 + ty) % 5 === 0) ctx.fillRect(px + (ty % 2 ? 10 : 28), py, 2, TS);
+        break;
+      case 'check':
+        ctx.fillStyle = (tx + ty) % 2 ? t.c1 : t.c2; ctx.fillRect(px, py, TS, TS);
+        break;
+      case 'carpet':
+        ctx.fillStyle = t.c1; ctx.fillRect(px, py, TS, TS);
+        ctx.fillStyle = t.c2; ctx.beginPath(); ctx.arc(px + 10, py + 10, 2.5, 0, Math.PI * 2); ctx.arc(px + 30, py + 30, 2.5, 0, Math.PI * 2); ctx.fill();
+        break;
+      case 'grass':
+        ctx.fillStyle = (tx + ty) % 2 ? t.c1 : t.c2; ctx.fillRect(px, py, TS, TS);
+        if (hh < 250) {
+          ctx.strokeStyle = '#6fb468'; ctx.lineWidth = 2; ctx.beginPath();
+          const gx = px + 10 + hh % 20, gy = py + 26;
+          ctx.moveTo(gx, gy); ctx.lineTo(gx - 3, gy - 6); ctx.moveTo(gx, gy); ctx.lineTo(gx + 3, gy - 6); ctx.stroke();
+        }
+        break;
+      case 'tatami':
+        ctx.fillStyle = t.c1; ctx.fillRect(px, py, TS, TS);
+        if (tx % 2 === 0) { ctx.strokeStyle = t.c2; ctx.lineWidth = 3; ctx.strokeRect(px + 1.5, py + 1.5, TS * 2 - 3, TS - 3); }
+        break;
+      case 'marble':
+        ctx.fillStyle = (tx + ty) % 2 ? t.c1 : '#ebe8e2'; ctx.fillRect(px, py, TS, TS);
+        ctx.strokeStyle = t.c2; ctx.lineWidth = 1.2; ctx.beginPath();
+        ctx.moveTo(px, py + hh % 40); ctx.quadraticCurveTo(px + 20, py + (hh >> 2) % 40, px + TS, py + (hh >> 4) % 40); ctx.stroke();
+        break;
+      case 'stars':
+        ctx.fillStyle = (tx + ty) % 2 ? t.c1 : t.c2; ctx.fillRect(px, py, TS, TS);
+        if (hh < 400) { ctx.fillStyle = '#ffe27a'; ctx.beginPath(); ctx.arc(px + 4 + hh % 32, py + 4 + (hh >> 2) % 32, 1.6, 0, Math.PI * 2); ctx.fill(); }
+        break;
+    }
+  }
+}
+
+// ---------- 섬 ----------
+function drawTiles(now) {
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const t = tileAt(x, y), px = x * TS, py = y * TS, h = hash(x, y);
+    if (t === 'grass') {
+      ctx.fillStyle = (x + y) % 2 ? '#86cc7f' : '#8fd388'; ctx.fillRect(px, py, TS, TS);
+      if (h < 120) {
+        ctx.strokeStyle = '#6fb468'; ctx.lineWidth = 2; ctx.beginPath();
+        const gx = px + 8 + h % 24, gy = py + 14 + (h >> 2) % 18;
+        ctx.moveTo(gx, gy); ctx.lineTo(gx - 3, gy - 6); ctx.moveTo(gx, gy); ctx.lineTo(gx + 3, gy - 6); ctx.stroke();
+      } else if (h < 140) {
+        ctx.fillStyle = h % 2 ? '#fff' : '#ffe27a';
+        ctx.beginPath(); ctx.arc(px + 10 + h % 20, py + 12 + h % 16, 3, 0, Math.PI * 2); ctx.fill();
+      }
+    } else if (t === 'path') {
+      ctx.fillStyle = '#86cc7f'; ctx.fillRect(px, py, TS, TS);
+      ctx.fillStyle = '#e9d3a5'; ctx.beginPath(); ctx.roundRect(px + 1, py + 4, TS - 2, TS - 8, 8); ctx.fill();
+    } else if (t === 'sand') {
+      ctx.fillStyle = '#f3e2b3'; ctx.fillRect(px, py, TS, TS);
+      if (h < 200) { ctx.fillStyle = '#e4cf98'; ctx.fillRect(px + h % 30, py + (h >> 3) % 30, 3, 3); }
+    } else {
+      const sea = t === 'sea';
+      if (sea) {
+        ctx.fillStyle = y === 15 ? '#7fd0e6' : y === 16 ? '#5bbbe0' : '#45a8d6';
+        ctx.fillRect(px, py, TS, TS);
+      } else {
+        ctx.fillStyle = '#86cc7f'; ctx.fillRect(px, py, TS, TS);
+        ctx.fillStyle = '#6cc6e2';
+        const r = 14, n = (dx, dy) => isPond(x + dx, y + dy);
+        ctx.beginPath();
+        ctx.roundRect(px, py, TS, TS, [n(-1,0)||n(0,-1)?0:r, n(1,0)||n(0,-1)?0:r, n(1,0)||n(0,1)?0:r, n(-1,0)||n(0,1)?0:r]);
+        ctx.fill();
+      }
+      const wv = Math.sin(now / 600 + x * 1.3 + y * 2.1);
+      if (h % 3 === 0) {
+        ctx.strokeStyle = 'rgba(255,255,255,.55)'; ctx.lineWidth = 2; ctx.beginPath();
+        ctx.arc(px + 12 + wv * 4, py + 20, 6, Math.PI * 1.1, Math.PI * 1.9); ctx.stroke();
+      }
+      if (sea && y === 15) {
+        ctx.fillStyle = 'rgba(255,255,255,.7)';
+        ctx.beginPath(); ctx.ellipse(px + TS / 2, py + 2 + Math.sin(now / 500 + x) * 2, TS / 2 + 2, 4, 0, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+  }
+}
+
+function drawTree(x, y, now) {
+  const k = x + ',' + y, cx = x * TS + TS / 2, base = y * TS + TS - 4;
+  const sa = shakeAnim[k] ? now - shakeAnim[k] : 9999;
+  const off = sa < 500 ? Math.sin(sa / 25) * 4 * (1 - sa / 500) : 0;
+  shadow(cx, base, 16, 6);
+  ctx.fillStyle = '#9b6b43'; ctx.beginPath(); ctx.roundRect(cx - 5, base - 20, 10, 20, 3); ctx.fill();
+  const c = cx + off;
+  ctx.fillStyle = '#3f9a4f';
+  [[0,-38,20],[-13,-28,14],[13,-28,14]].forEach(([dx, dy, r]) => { ctx.beginPath(); ctx.arc(c + dx, base + dy, r, 0, Math.PI * 2); ctx.fill(); });
+  ctx.fillStyle = '#58b765';
+  ctx.beginPath(); ctx.arc(c - 4, base - 42, 13, 0, Math.PI * 2); ctx.fill();
+  if (Date.now() - (S.trees[k] || 0) >= TREE_CD) {
+    ctx.fillStyle = '#e8463c';
+    [[-10,-30],[9,-36],[2,-24]].forEach(([dx, dy]) => { ctx.beginPath(); ctx.arc(c + dx, base + dy, 3.5, 0, Math.PI * 2); ctx.fill(); });
+  }
+}
+
+function drawBuilding(b, now) {
+  const x0 = b.x * TS, y0 = b.y * TS, w = b.w * TS, h = b.h * TS;
+  shadow(x0 + w / 2, y0 + h - 2, w / 2 + 4, 8);
+  ctx.fillStyle = b.wall; ctx.strokeStyle = '#d9c39b'; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.roundRect(x0 + 6, y0 + 22, w - 12, h - 24, 6); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = b.roof;
+  ctx.beginPath(); ctx.moveTo(x0 - 4, y0 + 30); ctx.lineTo(x0 + w / 2, y0 - 18); ctx.lineTo(x0 + w + 4, y0 + 30); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = b.roofD; ctx.lineWidth = 4; ctx.stroke();
+  ctx.fillStyle = '#a8744a'; ctx.beginPath(); ctx.roundRect(x0 + w / 2 - 12, y0 + h - 34, 24, 32, [10, 10, 0, 0]); ctx.fill();
+  ctx.fillStyle = '#ffd36b'; ctx.beginPath(); ctx.arc(x0 + w / 2 + 6, y0 + h - 18, 2.5, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#bfe6ff'; ctx.strokeStyle = '#d9c39b'; ctx.lineWidth = 2;
+  [x0 + 18, x0 + w - 38].forEach(wx => { ctx.beginPath(); ctx.roundRect(wx, y0 + 40, 20, 18, 4); ctx.fill(); ctx.stroke(); });
+  label(b.sign, x0 + w / 2, y0 + 14, '#fffaf0', '#5a4632', b.roofD);
+  // 집 문 앞에 서 있으면 안내
+  if (b.id === 'home' && same(P.x, P.y, HOME_FRONT) && !P.moving) {
+    const a = Math.abs(Math.sin(now / 300)) * 3;
+    label('↑ 들어가기', x0 + w / 2, y0 + h - 48 - a, '#fff', '#c95a4f', '#c95a4f');
+  }
+}
+
+// ---------- 집 안 ----------
+function drawRoom(now) {
+  ctx.fillStyle = '#2e2620'; ctx.fillRect(0, 0, cv.width, cv.height);
+  const x0 = ROOM.x0 * TS, x1 = (ROOM.x1 + 1) * TS, fy0 = ROOM.y0 * TS, fy1 = (ROOM.y1 + 1) * TS, wy = fy0 - 2 * TS;
+  // 벽
+  drawWall(x0, wy, x1 - x0, 2 * TS);
+  ctx.fillStyle = '#c79a6b'; ctx.fillRect(x0, fy0 - 8, x1 - x0, 8);
+  // 창문
+  const sky = night && night.a > 0.3 ? '#2b3a6b' : night ? '#f7b98a' : '#aee0ff';
+  [5, 9, 17, 21].forEach(wx => {
+    const X = wx * TS - 6, Y = wy + 14;
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.roundRect(X, Y, 52, 40, 6); ctx.fill();
+    ctx.fillStyle = sky; ctx.fillRect(X + 5, Y + 5, 42, 30);
+    ctx.fillStyle = '#fff'; ctx.fillRect(X + 24, Y + 5, 4, 30); ctx.fillRect(X + 5, Y + 18, 42, 4);
+    ctx.fillStyle = '#ff9aa2'; ctx.fillRect(X - 4, Y - 4, 60, 6);
+  });
+  // 바닥
+  drawFloor(x0, fy0, x1 - x0, fy1 - fy0);
+  // 벽 아래 걸레받이 그림자
+  ctx.fillStyle = 'rgba(60,40,20,.12)'; ctx.fillRect(x0, fy0, x1 - x0, 10);
+  // 벽 테두리
+  ctx.strokeStyle = '#8a6440'; ctx.lineWidth = 6;
+  ctx.strokeRect(x0 - 3, wy - 3, x1 - x0 + 6, fy1 - wy + 6);
+  // 출입문
+  const [dx, dy] = ROOM_DOOR, DX = dx * TS, DY = dy * TS;
+  ctx.fillStyle = '#d9a66b'; ctx.fillRect(DX, DY - 4, TS, TS + 4);
+  ctx.fillStyle = '#7cc47f'; ctx.beginPath(); ctx.roundRect(DX + 4, DY + 4, TS - 8, TS - 10, 6); ctx.fill();
+  const a = Math.abs(Math.sin(now / 300)) * 3;
+  label('▼ 나가기', DX + TS / 2, DY + TS + 6 + a, '#fff', '#4f9a53', '#4f9a53');
+}
+
+function drawMirror() {
+  const cx = MIRROR[0] * TS + TS / 2, base = MIRROR[1] * TS + TS - 2;
+  shadow(cx, base, 14, 4);
+  ctx.fillStyle = '#c9a26b'; ctx.beginPath(); ctx.roundRect(cx - 13, base - 52, 26, 50, 12); ctx.fill();
+  ctx.fillStyle = '#d6f1fb'; ctx.beginPath(); ctx.roundRect(cx - 9, base - 48, 18, 40, 9); ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,.9)'; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(cx - 4, base - 40); ctx.lineTo(cx + 3, base - 30); ctx.stroke();
+  if (Math.abs(P.x - MIRROR[0]) + Math.abs(P.y - MIRROR[1]) <= 1) label('🪞 Space: 옷장', cx + 34, base - 60);
+}
+
+// ---------- 가구 (실제 크기로 직접 그리기) ----------
+const OUT = 'rgba(80,58,38,.55)';
+function rbox(x, y, w, h, r, fill, line = OUT) {
+  ctx.fillStyle = fill; ctx.beginPath(); ctx.roundRect(x, y, w, h, r); ctx.fill();
+  if (line) { ctx.strokeStyle = line; ctx.lineWidth = 2; ctx.stroke(); }
+}
+function oval(cx, cy, rx, ry, fill, line = OUT, rot = 0) {
+  ctx.fillStyle = fill; ctx.beginPath(); ctx.ellipse(cx, cy, rx, ry, rot, 0, Math.PI * 2); ctx.fill();
+  if (line) { ctx.strokeStyle = line; ctx.lineWidth = 2; ctx.stroke(); }
+}
+function poly(pts, fill, line = OUT) {
+  ctx.fillStyle = fill; ctx.beginPath(); pts.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)); ctx.closePath(); ctx.fill();
+  if (line) { ctx.strokeStyle = line; ctx.lineWidth = 2; ctx.stroke(); }
+}
+function seg(x1, y1, x2, y2, color, w = 3) {
+  ctx.strokeStyle = color; ctx.lineWidth = w; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); ctx.lineCap = 'butt';
+}
+function glow(cx, cy, r, color) {
+  const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+  g.addColorStop(0, color); g.addColorStop(1, 'rgba(255,220,120,0)');
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+}
+function drawFurn(id, X, Y, now) {
+  const it = ITEMS[id], Wd = it.w * TS, Ht = it.h * TS, B = Y + Ht, cx = X + Wd / 2, key = id.slice(3);
+  if (!it.flat) shadow(cx, B - 6, Wd / 2 - 4, Math.min(9, Ht / 5));
+  const wood = '#c98b55', woodD = '#a8744a', t = now / 1000;
+  switch (key) {
+    case 'plant':
+      [[-0.9, 10], [0.9, 10], [-0.3, 13], [0.35, 12]].forEach(([r, l]) => oval(cx + Math.sin(r) * 8, B - 32 - l * Math.cos(r) * 0.6, 6, l, '#4fae5c', OUT, r));
+      poly([[cx - 11, B - 22], [cx + 11, B - 22], [cx + 8, B - 5], [cx - 8, B - 5]], '#d9824f');
+      rbox(cx - 13, B - 26, 26, 6, 3, '#e8956a');
+      break;
+    case 'plant_big':
+      seg(cx, B - 24, cx - 4, B - 62, '#3f8a46', 3); seg(cx, B - 24, cx + 6, B - 58, '#3f8a46', 3);
+      [[-12, -64, -0.6], [10, -60, 0.6], [-14, -44, -1.1], [14, -42, 1.1], [0, -74, 0], [-4, -52, -0.2]].forEach(([dx, dy, r]) => oval(cx + dx, B + dy, 8, 15, '#3fa458', OUT, r));
+      rbox(cx - 13, B - 28, 26, 24, [4, 4, 8, 8], '#f2efe6');
+      rbox(cx - 13, B - 28, 26, 5, 2, '#d8d2c4');
+      break;
+    case 'chair':
+      rbox(cx - 12, B - 50, 24, 28, 5, woodD);
+      seg(cx - 4, B - 46, cx - 4, B - 26, '#8a5a34', 2); seg(cx + 4, B - 46, cx + 4, B - 26, '#8a5a34', 2);
+      rbox(cx - 9, B - 16, 4, 12, 1, '#8a5a34'); rbox(cx + 5, B - 16, 4, 12, 1, '#8a5a34');
+      rbox(cx - 14, B - 24, 28, 10, 3, wood);
+      break;
+    case 'mailbox':
+      rbox(cx - 3, B - 32, 6, 28, 1, '#8a6440');
+      rbox(cx - 13, B - 52, 26, 22, [11, 11, 3, 3], '#e8463c');
+      rbox(cx - 7, B - 44, 14, 3, 1, '#7a1f1a', null);
+      rbox(cx + 11, B - 60, 3, 14, 1, '#f2b33d', null); rbox(cx + 11, B - 60, 9, 6, 1, '#f2b33d', null);
+      break;
+    case 'lantern':
+      glow(cx, B - 46, 30, 'rgba(255,200,110,.55)');
+      rbox(cx - 2, B - 30, 4, 26, 1, '#5a4632'); oval(cx, B - 6, 9, 3, '#5a4632');
+      oval(cx, B - 46, 12, 15, '#ff6f4f');
+      seg(cx - 12, B - 46, cx + 12, B - 46, 'rgba(120,40,20,.5)', 1.5); seg(cx - 10, B - 39, cx + 10, B - 39, 'rgba(120,40,20,.5)', 1.5);
+      rbox(cx - 7, B - 63, 14, 4, 1, '#3d2a1a', null); rbox(cx - 7, B - 33, 14, 4, 1, '#3d2a1a', null);
+      break;
+    case 'bear':
+      oval(cx, B - 16, 13, 12, '#b07a4a');
+      oval(cx - 11, B - 8, 6, 5, '#b07a4a'); oval(cx + 11, B - 8, 6, 5, '#b07a4a');
+      oval(cx - 10, B - 42, 5, 5, '#b07a4a'); oval(cx + 10, B - 42, 5, 5, '#b07a4a');
+      oval(cx, B - 34, 12, 11, '#c08a58');
+      oval(cx, B - 30, 5, 4, '#efd2ab', null);
+      oval(cx - 4, B - 36, 1.6, 1.8, '#3a2a1a', null); oval(cx + 4, B - 36, 1.6, 1.8, '#3a2a1a', null); oval(cx, B - 31, 2, 1.5, '#3a2a1a', null);
+      oval(cx, B - 16, 6, 5, '#efd2ab', null);
+      break;
+    case 'clock': {
+      rbox(cx - 13, B - 76, 26, 72, [13, 13, 3, 3], '#8a5a34');
+      oval(cx, B - 60, 9, 9, '#fff6e0');
+      const h = (Date.now() / 3600000) % 12 / 12 * Math.PI * 2, m = (Date.now() / 60000) % 60 / 60 * Math.PI * 2;
+      seg(cx, B - 60, cx + Math.sin(h) * 5, B - 60 - Math.cos(h) * 5, '#3a2a1a', 1.8);
+      seg(cx, B - 60, cx + Math.sin(m) * 7, B - 60 - Math.cos(m) * 7, '#3a2a1a', 1.2);
+      rbox(cx - 8, B - 46, 16, 34, 4, '#3a2a1a');
+      const a = Math.sin(t * 3) * 0.35;
+      seg(cx, B - 44, cx + Math.sin(a) * 22, B - 44 + Math.cos(a) * 22, '#e0b04a', 1.5);
+      oval(cx + Math.sin(a) * 22, B - 44 + Math.cos(a) * 22, 4, 4, '#f2c94c', null);
+      break;
+    }
+    case 'guitar':
+      seg(cx - 8, B - 4, cx, B - 30, '#3d2a1a', 2); seg(cx + 8, B - 4, cx, B - 30, '#3d2a1a', 2);
+      rbox(cx - 2.5, B - 66, 5, 34, 1, '#6b4a2e');
+      rbox(cx - 4, B - 72, 8, 9, 2, '#3d2a1a');
+      oval(cx, B - 16, 12, 11, '#e89a3c'); oval(cx, B - 32, 9, 8, '#e89a3c');
+      oval(cx, B - 21, 4, 4, '#3d2a1a', null); rbox(cx - 6, B - 11, 12, 3, 1, '#3d2a1a', null);
+      break;
+    case 'sofa': {
+      const c = '#e2726a', d = '#c95a52';
+      rbox(X + 8, B - 48, Wd - 16, 28, 12, d);
+      rbox(X + 10, B - 26, Wd - 20, 20, 7, c);
+      seg(cx - Wd / 6 + 2, B - 25, cx - Wd / 6 + 2, B - 8, 'rgba(120,40,30,.35)', 2); seg(cx + Wd / 6 - 2, B - 25, cx + Wd / 6 - 2, B - 8, 'rgba(120,40,30,.35)', 2);
+      rbox(X + 2, B - 36, 16, 32, 8, d); rbox(X + Wd - 18, B - 36, 16, 32, 8, d);
+      rbox(X + 22, B - 44, 18, 14, 6, '#ffd84d');
+      break;
+    }
+    case 'tv': {
+      rbox(X + 6, B - 24, Wd - 12, 20, 4, wood);
+      seg(cx, B - 22, cx, B - 6, 'rgba(90,60,30,.4)', 2);
+      oval(cx - 8, B - 14, 2, 2, '#5a4632', null); oval(cx + 8, B - 14, 2, 2, '#5a4632', null);
+      rbox(cx - 4, B - 30, 8, 8, 1, '#333');
+      rbox(cx - 32, B - 68, 64, 40, 5, '#2e2e36');
+      const hue = (t * 40) % 360;
+      ctx.fillStyle = `hsl(${hue},55%,72%)`; ctx.fillRect(cx - 28, B - 64, 56, 32);
+      ctx.fillStyle = `hsl(${(hue + 120) % 360},60%,60%)`; ctx.beginPath(); ctx.arc(cx - 6 + Math.sin(t) * 12, B - 48, 7, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,.25)'; ctx.fillRect(cx - 28, B - 64, 56, 6);
+      break;
+    }
+    case 'xmas':
+      rbox(cx - 6, B - 22, 12, 18, 2, '#8a5a34');
+      [[B - 18, 36, 30], [B - 40, 29, 28], [B - 60, 21, 26]].forEach(([by, hw, hh]) => poly([[cx - hw, by], [cx + hw, by], [cx, by - hh - 8]], '#3f9a4f'));
+      ['#e8463c', '#ffd84d', '#5b8def', '#ff8fb1', '#fff'].forEach((c, i) => {
+        const on = Math.sin(t * 3 + i * 1.7) > -0.3;
+        oval(cx + [-18, 14, -8, 10, 2, -20, 20][i], B + [-26, -30, -48, -52, -70, -38, -22][i], 3.5, 3.5, on ? c : '#2f6b37', null);
+      });
+      ctx.fillStyle = '#ffd84d'; ctx.font = `bold 20px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('★', cx, B - 92);
+      rbox(X + 6, B - 18, 16, 14, 2, '#ff8fb1'); rbox(X + Wd - 22, B - 16, 16, 12, 2, '#5b8def');
+      break;
+    case 'bed':
+      rbox(X + 4, Y - 10, Wd - 8, 26, [12, 12, 2, 2], woodD);
+      rbox(X + 4, Y + 12, Wd - 8, Ht - 22, 6, wood);
+      rbox(X + 8, Y + 14, Wd - 16, Ht - 28, 6, '#fffaf2');
+      rbox(X + 12, Y + 18, (Wd - 30) / 2, 16, 6, '#fff'); rbox(cx + 3, Y + 18, (Wd - 30) / 2, 16, 6, '#fff');
+      rbox(X + 8, Y + 42, Wd - 16, Ht - 56, [4, 4, 8, 8], '#7fb2e8');
+      rbox(X + 8, Y + 42, Wd - 16, 10, [4, 4, 0, 0], '#a9cdf2');
+      [[0.3, 0.55], [0.7, 0.6], [0.5, 0.75], [0.25, 0.85], [0.75, 0.85]].forEach(([fx, fy]) => oval(X + Wd * fx, Y + Ht * fy, 3, 3, '#fff', null));
+      rbox(X + 4, B - 14, Wd - 8, 10, 4, woodD);
+      break;
+    case 'tent':
+      poly([[X + 6, B - 6], [cx, Y - 20], [X + Wd - 6, B - 6]], '#f2b33d');
+      poly([[cx, Y - 20], [X + Wd * 0.38, B - 6], [X + Wd * 0.3, B - 6]], '#e89a2a', null);
+      poly([[cx, Y - 20], [X + Wd * 0.62, B - 6], [X + Wd * 0.7, B - 6]], '#e89a2a', null);
+      poly([[cx - 18, B - 6], [cx, B - 50], [cx + 18, B - 6]], '#7a4a2a');
+      seg(cx, Y - 20, cx, Y - 40, '#5a4632', 2); poly([[cx, Y - 40], [cx + 16, Y - 35], [cx, Y - 30]], '#e8463c', null);
+      break;
+    case 'piano': {
+      rbox(X + 4, B - 66, Wd - 8, 62, [6, 6, 2, 2], '#2b2b33');
+      rbox(X + 12, B - 60, Wd - 24, 16, 3, '#3d3d48', null);
+      rbox(X + 2, B - 36, Wd - 4, 10, 2, '#fff');
+      ctx.fillStyle = '#222';
+      for (let k = 0; k < 13; k++) if (k % 7 !== 2 && k % 7 !== 6) ctx.fillRect(X + 6 + k * ((Wd - 12) / 13), B - 36, 3.5, 6);
+      ctx.fillStyle = '#2b2b33'; ctx.fillRect(X + 6, B - 26, 5, 22); ctx.fillRect(X + Wd - 11, B - 26, 5, 22);
+      const n = (t * 0.6) % 1;
+      ctx.fillStyle = `rgba(90,70,50,${1 - n})`; ctx.font = `bold 16px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('♪', cx + 18, B - 70 - n * 20);
+      break;
+    }
+    case 'fountain': {
+      const fy = B - 40;
+      oval(cx, fy, Wd / 2 - 6, Ht / 2 - 16, '#cfc6b8');
+      oval(cx, fy - 4, Wd / 2 - 16, Ht / 2 - 26, '#7fd0e6', null);
+      ctx.strokeStyle = 'rgba(255,255,255,.7)'; ctx.lineWidth = 2;
+      for (let i = 0; i < 2; i++) { const r = ((t * 0.6 + i / 2) % 1); ctx.beginPath(); ctx.ellipse(cx, fy - 4, 12 + r * 30, 5 + r * 12, 0, 0, Math.PI * 2); ctx.stroke(); }
+      rbox(cx - 7, fy - 44, 14, 40, 4, '#e2dbcf');
+      oval(cx, fy - 44, 22, 7, '#e2dbcf'); oval(cx, fy - 46, 15, 4, '#7fd0e6', null);
+      ctx.strokeStyle = 'rgba(200,240,255,.9)'; ctx.lineWidth = 2.5;
+      [-1, 1].forEach(s => { ctx.beginPath(); ctx.moveTo(cx, fy - 56); ctx.quadraticCurveTo(cx + s * 22, fy - 74 - Math.sin(t * 6) * 3, cx + s * 30, fy - 20); ctx.stroke(); });
+      seg(cx, fy - 46, cx, fy - 62, 'rgba(200,240,255,.9)', 3);
+      break;
+    }
+    case 'basket':
+      ctx.strokeStyle = '#a8744a'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(cx, B - 24, 12, Math.PI, 0); ctx.stroke();
+      oval(cx - 5, B - 25, 5, 5, '#e8463c'); oval(cx + 5, B - 26, 5, 5, '#e8463c');
+      poly([[cx - 12, B - 26], [cx - 2, B - 30], [cx + 4, B - 22]], '#fff', null);
+      rbox(cx - 15, B - 24, 30, 20, [3, 3, 7, 7], '#d9a66b');
+      ctx.strokeStyle = 'rgba(120,80,40,.45)'; ctx.lineWidth = 1.5;
+      for (let i = 1; i < 5; i++) { ctx.beginPath(); ctx.moveTo(cx - 15 + i * 6, B - 24); ctx.lineTo(cx - 15 + i * 6, B - 4); ctx.stroke(); }
+      seg(cx - 15, B - 14, cx + 15, B - 14, 'rgba(120,80,40,.45)', 1.5);
+      break;
+    case 'candle': {
+      oval(cx, B - 6, 10, 3.5, '#d9b04a'); rbox(cx - 2, B - 30, 4, 24, 1, '#d9b04a');
+      ctx.strokeStyle = '#d9b04a'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(cx, B - 34, 11, 0, Math.PI); ctx.stroke();
+      [-11, 0, 11].forEach((dx, i) => {
+        const yy = dx ? B - 44 : B - 50;
+        glow(cx + dx, yy - 6, 12, 'rgba(255,200,110,.5)');
+        rbox(cx + dx - 3, yy, 6, (dx ? 10 : 16), 1, '#fffaf0');
+        oval(cx + dx, yy - 5 + Math.sin(t * 9 + i) * 0.8, 2.6, 4.5 + Math.sin(t * 7 + i * 2), '#ffb53d', null);
+      });
+      break;
+    }
+    case 'gift':
+      rbox(cx - 14, B - 30, 28, 26, 3, '#ff8fb1');
+      rbox(cx - 16, B - 34, 32, 8, 3, '#ff6f91');
+      rbox(cx - 3, B - 34, 6, 30, 0, '#ffd84d', null);
+      oval(cx - 7, B - 38, 7, 5, '#ffd84d', OUT, -0.4); oval(cx + 7, B - 38, 7, 5, '#ffd84d', OUT, 0.4);
+      break;
+    case 'lamp':
+      glow(cx, B - 60, 34, 'rgba(255,230,150,.55)');
+      oval(cx, B - 6, 10, 3.5, '#5a4632'); rbox(cx - 1.5, B - 56, 3, 50, 1, '#5a4632', null);
+      poly([[cx - 9, B - 72], [cx + 9, B - 72], [cx + 15, B - 52], [cx - 15, B - 52]], '#fff3c4');
+      break;
+    case 'books': {
+      rbox(X + 4, B - 76, Wd - 8, 72, 3, woodD);
+      const cols = ['#e8463c', '#5b8def', '#ffd84d', '#7cc47f', '#ff8fb1', '#8a6bd1', '#f29f3d'];
+      [B - 70, B - 47, B - 24].forEach((sy, r) => {
+        rbox(X + 8, sy, Wd - 16, 19, 2, '#6b4a2e', null);
+        let bx = X + 10;
+        for (let i = 0; bx < X + Wd - 14; i++) {
+          const bw = 5 + (r * 7 + i * 3) % 4, bh = 13 + (r + i * 5) % 5;
+          rbox(bx, sy + 19 - bh, bw, bh, 1, cols[(r * 3 + i) % cols.length], null); bx += bw + 1;
+        }
+      });
+      break;
+    }
+    case 'radio': {
+      rbox(cx - 16, B - 30, 32, 24, 5, '#e85a4f');
+      oval(cx - 6, B - 18, 7, 7, '#f6e7d0');
+      ctx.fillStyle = 'rgba(90,60,40,.45)'; for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) { ctx.beginPath(); ctx.arc(cx - 6 + i * 3.2, B - 18 + j * 3.2, 1, 0, Math.PI * 2); ctx.fill(); }
+      rbox(cx + 4, B - 25, 9, 5, 1, '#fff6e0', null); oval(cx + 9, B - 13, 3, 3, '#fff6e0', null);
+      seg(cx + 10, B - 30, cx + 18, B - 50, '#5a4632', 1.5);
+      const n = (t * 0.7) % 1;
+      ctx.fillStyle = `rgba(90,70,50,${1 - n})`; ctx.font = `bold 15px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('♫', cx - 10 - n * 6, B - 36 - n * 18);
+      break;
+    }
+    case 'mirror':
+      rbox(cx - 13, B - 58, 26, 52, 12, '#c9a26b');
+      rbox(cx - 9, B - 54, 18, 42, 9, '#d6f1fb', null);
+      seg(cx - 4, B - 46, cx + 3, B - 36, 'rgba(255,255,255,.9)', 3);
+      rbox(cx - 9, B - 8, 18, 4, 2, '#a8744a', null);
+      break;
+    case 'frame':
+      seg(cx - 12, B - 4, cx - 4, B - 64, '#8a5a34', 3); seg(cx + 12, B - 4, cx + 4, B - 64, '#8a5a34', 3); seg(cx, B - 30, cx + 4, B - 6, '#8a5a34', 3);
+      rbox(cx - 16, B - 60, 32, 28, 2, '#fff');
+      ctx.fillStyle = '#aee0ff'; ctx.fillRect(cx - 13, B - 57, 26, 22);
+      ctx.fillStyle = '#7cc47f'; ctx.beginPath(); ctx.ellipse(cx - 2, B - 35, 16, 9, 0, Math.PI, 0); ctx.fill();
+      oval(cx + 7, B - 50, 4, 4, '#ffd84d', null);
+      rbox(cx - 16, B - 33, 32, 4, 1, '#8a5a34', null);
+      break;
+    case 'snowman':
+      oval(cx, B - 16, 14, 13, '#fff');
+      oval(cx, B - 38, 10, 10, '#fff');
+      rbox(cx - 11, B - 30, 22, 5, 2, '#e8463c', null);
+      oval(cx - 3.5, B - 41, 1.5, 1.5, '#333', null); oval(cx + 3.5, B - 41, 1.5, 1.5, '#333', null);
+      poly([[cx, B - 38], [cx + 10, B - 36], [cx, B - 35]], '#f29f3d', null);
+      rbox(cx - 10, B - 50, 20, 3, 1, '#333', null); rbox(cx - 6, B - 62, 12, 13, 2, '#333', null);
+      oval(cx, B - 20, 1.6, 1.6, '#333', null); oval(cx, B - 13, 1.6, 1.6, '#333', null);
+      break;
+    case 'vase':
+      ctx.strokeStyle = '#b06a32'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(cx - 11, B - 38, 6, Math.PI * 0.5, Math.PI * 1.5); ctx.stroke();
+      ctx.beginPath(); ctx.arc(cx + 11, B - 38, 6, -Math.PI * 0.5, Math.PI * 0.5); ctx.stroke();
+      oval(cx, B - 20, 14, 17, '#d48a4a');
+      rbox(cx - 6, B - 46, 12, 12, 2, '#d48a4a'); rbox(cx - 9, B - 48, 18, 5, 2, '#c97a3a');
+      rbox(cx - 13, B - 24, 26, 5, 1, '#3d2a1a', null);
+      break;
+    case 'parasol':
+      oval(cx, B - 22, 28, 12, '#fff');
+      seg(cx - 18, B - 18, cx - 18, B - 6, '#ddd', 3); seg(cx + 18, B - 18, cx + 18, B - 6, '#ddd', 3);
+      rbox(cx + 8, B - 32, 7, 9, 2, '#ffd84d', null);
+      seg(cx, B - 24, cx, Y - 10, '#8a6440', 3);
+      for (let i = 0; i < 6; i++) poly([[cx, Y - 32], [cx - 40 + i * 13.3, Y - 2 + Math.abs(i - 2.5) * 2], [cx - 40 + (i + 1) * 13.3, Y - 2 + Math.abs(i - 1.5) * 2]], i % 2 ? '#fff' : '#e8463c', null);
+      ctx.strokeStyle = OUT; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(cx - 40, Y + 3); ctx.lineTo(cx, Y - 32); ctx.lineTo(cx + 40, Y + 3); ctx.stroke();
+      break;
+    case 'bike': {
+      const w1 = X + 18, w2 = X + Wd - 18, wy = B - 18;
+      [w1, w2].forEach(wx => {
+        ctx.strokeStyle = '#333'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(wx, wy, 13, 0, Math.PI * 2); ctx.stroke();
+        ctx.strokeStyle = '#aaa'; ctx.lineWidth = 1; for (let k = 0; k < 4; k++) { const a = k * Math.PI / 4; ctx.beginPath(); ctx.moveTo(wx + Math.cos(a) * 12, wy + Math.sin(a) * 12); ctx.lineTo(wx - Math.cos(a) * 12, wy - Math.sin(a) * 12); ctx.stroke(); }
+      });
+      const c = '#5b8def';
+      seg(w1, wy, cx - 4, wy - 2, c); seg(cx - 4, wy - 2, cx - 8, wy - 24, c); seg(w1, wy, cx - 8, wy - 24, c);
+      seg(cx - 8, wy - 22, w2 - 6, wy - 22, c); seg(cx - 4, wy - 2, w2 - 6, wy - 22, c); seg(w2 - 6, wy - 22, w2, wy, c);
+      seg(w2 - 6, wy - 22, w2 - 8, wy - 32, '#555'); seg(w2 - 14, wy - 32, w2 - 2, wy - 32, '#555', 3);
+      rbox(cx - 16, wy - 30, 14, 5, 2, '#5a4632', null);
+      rbox(w2 - 2, wy - 34, 14, 10, 2, '#d9a66b');
+      break;
+    }
+    case 'disco': {
+      for (let i = 0; i < 5; i++) {
+        const a = t * 1.2 + i * 1.256;
+        ctx.fillStyle = `hsla(${i * 72},90%,65%,.35)`;
+        ctx.beginPath(); ctx.ellipse(cx + Math.cos(a) * 30, B - 8 + Math.sin(a) * 10, 6, 3, 0, 0, Math.PI * 2); ctx.fill();
+      }
+      seg(cx, B - 6, cx, B - 44, '#888', 2.5); oval(cx, B - 6, 9, 3, '#666');
+      oval(cx, B - 58, 15, 15, '#cfd6de');
+      ctx.save(); ctx.beginPath(); ctx.arc(cx, B - 58, 15, 0, Math.PI * 2); ctx.clip();
+      for (let i = -3; i <= 3; i++) for (let j = -3; j <= 3; j++) {
+        const lit = Math.sin(t * 4 + i * 1.3 + j * 2.1) > 0.6;
+        ctx.fillStyle = lit ? '#fff' : (i + j) % 2 ? '#aeb8c4' : '#dfe5ec';
+        ctx.fillRect(cx + i * 5 - 2.5 + ((t * 8) % 5), B - 58 + j * 5 - 2.5, 4.5, 4.5);
+      }
+      ctx.restore();
+      break;
+    }
+    case 'bath':
+      rbox(X + 6, Y + 6, Wd - 12, Ht - 16, 24, '#fff');
+      rbox(X + 14, Y + 14, Wd - 28, Ht - 32, 18, '#9fdcf0', null);
+      for (let i = 0; i < 6; i++) oval(X + 26 + i * 13 + Math.sin(t * 2 + i) * 2, Y + 24 + (i % 3) * 9, 5 + (i % 2) * 2, 4 + (i % 2) * 2, 'rgba(255,255,255,.9)', null);
+      rbox(X + Wd - 18, Y + Ht / 2 - 18, 10, 14, 3, '#cfd6de');
+      [X + 14, X + Wd - 20].forEach(fx => oval(fx + 3, B - 8, 5, 4, '#e0b04a'));
+      break;
+    case 'moai':
+      rbox(X + 10, B - 16, Wd - 20, 12, 3, '#7d786d');
+      poly([[X + 18, B - 14], [X + 14, Y - 24], [X + Wd - 14, Y - 30], [X + Wd - 18, B - 14]], '#9a958a');
+      rbox(X + 16, Y - 4, Wd - 32, 8, 3, '#6f6a60', null);
+      poly([[cx, Y + 2], [cx + 8, Y + 32], [cx - 2, Y + 34]], '#857f74', OUT);
+      rbox(cx - 12, Y + 44, 26, 4, 2, '#5d5850', null);
+      oval(X + 13, Y + 16, 4, 12, '#8a8579');
+      break;
+    case 'carousel': {
+      const py = B - 28, rx = Wd / 2 - 8, ry = 22;
+      oval(cx, py + 6, rx, ry, '#c98a12');
+      oval(cx, py, rx, ry, '#f7d06b');
+      const horses = [0, 1, 2, 3, 4, 5].map(i => {
+        const a = t * 0.8 + i * Math.PI / 3;
+        return {x:cx + Math.cos(a) * (rx - 16), y:py + Math.sin(a) * (ry - 6), z:Math.sin(a), b:Math.sin(t * 3 + i) * 5, c:['#fff', '#ffd1dc', '#cfe3ff'][i % 3]};
+      }).sort((a, b) => a.z - b.z);
+      rbox(cx - 8, Y + 14, 16, py - Y - 14, 3, '#ff8fb1');
+      horses.forEach(h => {
+        seg(h.x, Y + 22, h.x, h.y, '#e0b04a', 2.5);
+        oval(h.x, h.y - 22 + h.b, 11, 7, h.c);
+        oval(h.x + 9, h.y - 30 + h.b, 4, 6, h.c);
+        seg(h.x - 6, h.y - 17 + h.b, h.x - 6, h.y - 10 + h.b, '#bba', 2); seg(h.x + 6, h.y - 17 + h.b, h.x + 6, h.y - 10 + h.b, '#bba', 2);
+      });
+      for (let i = 0; i < 8; i++) poly([[cx, Y - 34], [X + 6 + i * (Wd - 12) / 8, Y + 22], [X + 6 + (i + 1) * (Wd - 12) / 8, Y + 22]], i % 2 ? '#fff' : '#e8463c', null);
+      for (let i = 0; i < 8; i++) oval(X + 6 + (i + 0.5) * (Wd - 12) / 8, Y + 24, (Wd - 12) / 16, 6, i % 2 ? '#e8463c' : '#fff', null);
+      seg(cx, Y - 34, cx, Y - 52, '#5a4632', 2); poly([[cx, Y - 52], [cx + 14, Y - 47], [cx, Y - 42]], '#5b8def', null);
+      break;
+    }
+    case 'rug':
+      rbox(X + 6, Y + 6, Wd - 12, Ht - 12, 6, '#e98a8a', null);
+      ctx.setLineDash([7, 5]); ctx.strokeStyle = 'rgba(255,255,255,.85)'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.roundRect(X + 14, Y + 14, Wd - 28, Ht - 28, 4); ctx.stroke(); ctx.setLineDash([]);
+      oval(cx, Y + Ht / 2, 14, 9, '#ffd1d1', null);
+      ctx.strokeStyle = '#f4c2c2'; ctx.lineWidth = 2;
+      for (let yy = Y + 10; yy < B - 8; yy += 6) { ctx.beginPath(); ctx.moveTo(X + 1, yy); ctx.lineTo(X + 6, yy); ctx.moveTo(X + Wd - 6, yy); ctx.lineTo(X + Wd - 1, yy); ctx.stroke(); }
+      break;
+    case 'rug_round':
+      oval(cx, Y + Ht / 2, Wd / 2 - 4, Ht / 2 - 8, '#8fc1ea', null);
+      oval(cx, Y + Ht / 2, Wd / 2 - 16, Ht / 2 - 20, '#b5d8f4', null);
+      ctx.setLineDash([7, 5]); ctx.strokeStyle = 'rgba(255,255,255,.9)'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.ellipse(cx, Y + Ht / 2, Wd / 2 - 26, Ht / 2 - 30, 0, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]);
+      oval(cx, Y + Ht / 2, 12, 12, '#fff', null);
+      break;
+    case 'table':
+      rbox(X + 10, B - 28, 6, 24, 1, '#8a5a34'); rbox(X + Wd - 16, B - 28, 6, 24, 1, '#8a5a34');
+      rbox(X + 4, Y + 10, Wd - 8, Ht - 40, 6, wood);
+      rbox(X + 4, B - 32, Wd - 8, 8, [0, 0, 4, 4], woodD);
+      rbox(X + 16, Y + 14, Wd - 32, Ht - 48, 4, '#fff', null);
+      oval(X + 26, Y + 30, 9, 6, '#fff'); oval(X + Wd - 26, Y + 30, 9, 6, '#fff');
+      oval(X + 26, Y + 30, 5, 3, '#f29f3d', null); oval(X + Wd - 26, Y + 30, 5, 3, '#7cc47f', null);
+      rbox(cx - 4, Y + 8, 8, 14, 3, '#aee0ff'); oval(cx, Y + 4, 4, 4, '#ff6f91', null);
+      break;
+    case 'fridge':
+      rbox(cx - 16, B - 78, 32, 74, 6, '#eef5fb');
+      seg(cx - 15, B - 52, cx + 15, B - 52, OUT, 2);
+      rbox(cx + 8, B - 72, 3, 14, 1, '#aab4be', null); rbox(cx + 8, B - 46, 3, 20, 1, '#aab4be', null);
+      oval(cx - 6, B - 66, 3, 3, '#e8463c', null); rbox(cx - 9, B - 40, 8, 10, 1, '#ffd84d', null);
+      break;
+    case 'kitchen':
+      rbox(X + 2, B - 42, Wd - 4, 38, 4, '#f4ead8');
+      seg(cx, B - 38, cx, B - 6, OUT, 1.5);
+      oval(cx - 6, B - 22, 2, 2, '#a8744a', null); oval(cx + 6, B - 22, 2, 2, '#a8744a', null);
+      rbox(X, B - 50, Wd, 10, 3, '#cfc6b8');
+      rbox(X + 8, B - 49, 24, 7, 3, '#9fb3c4', null);
+      seg(X + 20, B - 50, X + 20, B - 62, '#aab4be', 3); seg(X + 20, B - 62, X + 26, B - 62, '#aab4be', 3);
+      oval(X + Wd - 28, B - 46, 6, 2.5, '#444', null); oval(X + Wd - 12, B - 46, 6, 2.5, '#444', null);
+      rbox(X + Wd - 36, B - 60, 16, 12, [2, 2, 5, 5], '#e85a4f');
+      if (Math.sin(t * 2) > 0) { ctx.fillStyle = 'rgba(255,255,255,.7)'; ctx.beginPath(); ctx.arc(X + Wd - 28, B - 66 - (t * 10) % 8, 3, 0, Math.PI * 2); ctx.fill(); }
+      break;
+    case 'cabinet':
+      rbox(X + 4, B - 56, Wd - 8, 52, 4, wood);
+      seg(cx, B - 52, cx, B - 24, OUT, 1.5); seg(X + 6, B - 24, X + Wd - 6, B - 24, OUT, 1.5); seg(X + 6, B - 14, X + Wd - 6, B - 14, OUT, 1.5);
+      oval(cx - 5, B - 38, 2, 2, '#5a4632', null); oval(cx + 5, B - 38, 2, 2, '#5a4632', null);
+      rbox(cx - 6, B - 20, 12, 3, 1, '#5a4632', null); rbox(cx - 6, B - 10, 12, 3, 1, '#5a4632', null);
+      rbox(X + 12, B - 70, 14, 14, 2, '#fff'); ctx.fillStyle = '#aee0ff'; ctx.fillRect(X + 15, B - 67, 8, 8);
+      rbox(X + Wd - 26, B - 64, 10, 8, [1, 1, 3, 3], '#d9824f'); oval(X + Wd - 21, B - 68, 6, 5, '#4fae5c', null);
+      break;
+    case 'desk':
+      rbox(X + 6, B - 30, 5, 26, 1, '#8a5a34');
+      rbox(X + Wd - 30, B - 30, 24, 26, 2, woodD);
+      seg(X + Wd - 28, B - 18, X + Wd - 8, B - 18, OUT, 1.5);
+      rbox(X + 2, B - 40, Wd - 4, 12, 3, wood);
+      rbox(X + 16, B - 44, 26, 5, 1, '#9aa3ad');
+      rbox(X + 18, B - 64, 22, 20, 2, '#3a3f48'); ctx.fillStyle = '#8fd0ff'; ctx.fillRect(X + 20, B - 62, 18, 15);
+      seg(X + Wd - 14, B - 40, X + Wd - 20, B - 60, '#5a4632', 2);
+      poly([[X + Wd - 26, B - 62], [X + Wd - 14, B - 66], [X + Wd - 12, B - 58]], '#ffd84d');
+      break;
+    default:
+      emoji(it.emoji, cx, B - TS / 2, 30);
+  }
+}
+
+// ---------- 공통 오브젝트 ----------
+function drawFlower(p) {
+  const cx = p.x * TS + TS / 2, cy = p.y * TS + TS / 2, f = FLOWER_BY_ID[p.fid];
+  if (p.stage >= 3) { shadow(cx, cy + 14, 10, 4); emoji(f.emoji, cx, cy + 2, 28); return; }
+  ctx.fillStyle = p.wateredAt ? '#6b4a2e' : '#a5764c';
+  ctx.beginPath(); ctx.ellipse(cx, cy + 10, 13, 6, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = '#3f9a4f'; ctx.fillStyle = '#58b765'; ctx.lineWidth = 3;
+  if (p.stage === 0) { ctx.fillStyle = '#5a3d22'; ctx.beginPath(); ctx.arc(cx, cy + 8, 2.5, 0, Math.PI * 2); ctx.fill(); }
+  if (p.stage >= 1) {
+    const top = p.stage === 1 ? cy + 2 : cy - 8;
+    ctx.beginPath(); ctx.moveTo(cx, cy + 9); ctx.lineTo(cx, top); ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(cx - 6, top + 4, 6, 3, -0.5, 0, Math.PI * 2); ctx.ellipse(cx + 6, top + 4, 6, 3, 0.5, 0, Math.PI * 2); ctx.fill();
+  }
+  if (p.stage === 2) { ctx.fillStyle = f.color; ctx.beginPath(); ctx.ellipse(cx, cy - 12, 5, 7, 0, 0, Math.PI * 2); ctx.fill(); }
+  if (p.wateredAt) { ctx.fillStyle = '#4fb3e6'; ctx.beginPath(); ctx.arc(cx + 12, cy - 10, 3, 0, Math.PI * 2); ctx.fill(); }
+  else emoji('💧', cx + 12, cy - 12, 12);
+}
+
+function drawLine(px, py, now) {
+  const [dx, dy] = DIRS[P.dir];
+  const hx = px + dx * 12, hy = py - 4 + dy * 6;
+  const bx = fish.bx * TS + TS / 2, byBase = fish.by * TS + TS / 2;
+  const nib = fish.state === 'wait' && fish.nibbles.some(n => now > n && now < n + 180);
+  const by = byBase + (fish.state === 'bite' ? 6 : nib ? 2 : Math.sin(now / 300) * 1.5);
+  ctx.strokeStyle = 'rgba(255,255,255,.85)'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(hx, hy); ctx.quadraticCurveTo((hx + bx) / 2, Math.min(hy, by) - 30, bx, by); ctx.stroke();
+  if (fish.state === 'bite') {
+    ctx.strokeStyle = 'rgba(255,255,255,.8)'; ctx.lineWidth = 2;
+    const r = 8 + ((now % 400) / 400) * 10;
+    ctx.beginPath(); ctx.ellipse(bx, byBase + 6, r, r / 2.5, 0, 0, Math.PI * 2); ctx.stroke();
+  }
+  ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(bx, by, 6, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#e8463c'; ctx.beginPath(); ctx.arc(bx, by, 6, Math.PI, 0); ctx.fill();
+  if (fish.state === 'bite') {
+    ctx.fillStyle = '#fff'; ctx.strokeStyle = '#e8463c'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(px, py - 52, 13, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#e8463c'; ctx.font = `bold 20px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('!', px, py - 51);
+  }
+}
+
+function drawGhost(now) {
+  if (!S.holding || !ITEMS[S.holding] || fish.state !== 'idle') return;
+  const [fx, fy] = front();
+  if (blocked(fx, fy) || reserved(fx, fy) || dropAt(fx, fy)) return;
+  const it = ITEMS[S.holding], r = fpRect(S.holding, fx, fy, P.dir), ok = canPlace(S.holding, r);
+  ctx.save();
+  // 가구가 차지할 칸 표시 (빨간색 = 자리가 부족)
+  ctx.setLineDash([5, 4]); ctx.lineWidth = 2;
+  ctx.strokeStyle = ok ? '#fff' : '#ff6b6b'; ctx.fillStyle = ok ? 'rgba(255,255,255,.16)' : 'rgba(255,90,90,.25)';
+  for (let y = r.y; y < r.y + r.h; y++) for (let x = r.x; x < r.x + r.w; x++) {
+    ctx.beginPath(); ctx.roundRect(x * TS + 3, y * TS + 3, TS - 6, TS - 6, 8); ctx.fill(); ctx.stroke();
+  }
+  ctx.setLineDash([]);
+  ctx.globalAlpha = ok ? 0.6 : 0.3;
+  if (it.type === 'furn') drawFurn(S.holding, r.x * TS, r.y * TS, now);
+  else emoji(it.type === 'seed' ? '🌱' : it.emoji, fx * TS + TS / 2, fy * TS + TS / 2, 26);
+  ctx.restore();
+}
+
+function render(now) {
+  const list = [];
+  if (onIsland()) {
+    drawTiles(now);
+    TREES.forEach(([x, y]) => list.push({d:y * TS + TS - 1, f:() => drawTree(x, y, now)}));
+    BUILDINGS.forEach(b => list.push({d:(b.y + b.h) * TS, f:() => drawBuilding(b, now)}));
+    S.drops.forEach(d => list.push({d:d.y * TS + 1, f:() => {
+      const age = Math.min(1, (Date.now() - d.born) / 500);
+      const cx = d.x * TS + TS / 2, cy = d.y * TS + TS / 2 - Math.sin(age * Math.PI) * 22 + Math.sin(now / 350 + d.x) * 1.5;
+      shadow(cx, d.y * TS + TS - 8, 9, 3);
+      emoji(d.kind === 'bells' ? '💰' : ITEMS[d.id].emoji, cx, cy, 24);
+    }}));
+    list.push({d:NPC.y * TS + TS / 2, f:() => drawRaccoon(now)});
+    list.push({d:ARCADE[1] * TS + TS / 2, f:() => drawArcade(now)});
+    S.digs.forEach(d => drawDig(d, now));
+    bugs.forEach(b => list.push({d:b.y * TS + TS / 2 + 2, f:() => drawBug(b, now)}));
+    FR.forEach(f => {
+      const t = f.moving ? f.t : 0, fy = f.y + (f.ty - f.y) * t;
+      list.push({d:fy * TS + TS / 2, f:() => drawFriendOnMap(f, now)});
+    });
+  } else {
+    drawRoom(now);
+    list.push({d:MIRROR[1] * TS + TS / 2, f:drawMirror});
+  }
+  const here = S.placed.filter(p => p.s === S.scene);
+  // 러그는 바닥에 먼저 깔고, 나머지는 아래쪽 줄 기준으로 앞뒤를 정해 그린다
+  here.filter(p => fpOf(p).flat).forEach(p => drawFurn(p.id, p.x * TS, p.y * TS, now));
+  here.filter(p => !fpOf(p).flat).forEach(p => list.push({d:(p.y + fpOf(p).h - 1) * TS + TS / 2, f:() => {
+    if (p.kind === 'flower') drawFlower(p);
+    else drawFurn(p.id, p.x * TS, p.y * TS, now);
+  }}));
+  const pt = P.moving ? P.t : 0;
+  list.push({d:(P.y + (P.ty - P.y) * pt) * TS + TS / 2 + 1, f:() => drawPlayer(now)});
+  list.sort((a, b) => a.d - b.d).forEach(o => o.f());
+  drawGhost(now);
+  sparkles.forEach(s => {
+    const a = (now - s.born) / 900;
+    ctx.globalAlpha = Math.max(0, 1 - a);
+    emoji(s.e, s.x * TS + TS / 2, s.y * TS + TS / 2 - 10 - a * 24, 20);
+    ctx.globalAlpha = 1;
+  });
+  if (night && onIsland()) { ctx.fillStyle = `rgba(${night.c},${night.a})`; ctx.fillRect(0, 0, cv.width, cv.height); }
+}
+
+// ---------- 친구 채팅 (공개 중계 서버 ntfy.sh 사용) ----------
+const CHAT_KEY = 'island-life-chat-v1', CHAT_SERVER = 'https://ntfy.sh/';
+const $ = id => document.getElementById(id);
+const chatEl = $('chat'), chatLog = $('chatLog'), chatStat = $('chatStat'), chatBtn = $('chatBtn');
+const chatNick = $('chatNick'), chatRoom = $('chatRoom'), chatMsg = $('chatMsg');
+let CH = null;
+try { CH = JSON.parse(localStorage.getItem(CHAT_KEY)); } catch (e) {}
+CH = Object.assign({nick:'', room:'', me:Math.random().toString(36).slice(2, 10)}, CH);
+let chatES = null, chatSince = 0, chatUnread = 0, chatLastSend = 0;
+const chatSeen = new Set();
+const saveChat = () => { try { localStorage.setItem(CHAT_KEY, JSON.stringify(CH)); } catch (e) {} };
+function chatTopic(room) {
+  // 방 이름(한글 가능)을 서버 주제 이름에 쓸 수 있는 영문·숫자로 바꾼다
+  let h1 = 0x811c9dc5, h2 = 0x01000193;
+  for (const ch of room) { const c = ch.codePointAt(0); h1 = Math.imul(h1 ^ c, 16777619) >>> 0; h2 = Math.imul(h2 ^ c, 2246822519) >>> 0; }
+  return 'my_island_life_' + h1.toString(36) + h2.toString(36);
+}
+function chatStatus(text, color) { chatStat.textContent = text; chatStat.style.color = color; }
+function chatBadge() { chatBtn.innerHTML = '💬 채팅' + (chatUnread ? `<span class="badge">${chatUnread}</span>` : ''); }
+function chatShowSetup(joined) {
+  $('chatSetup').classList.toggle('hidden', joined);
+  $('chatInfo').classList.toggle('hidden', !joined);
+  chatMsg.disabled = $('chatSendBtn').disabled = !joined;
+  $('chatRoomN').textContent = CH.room; $('chatNickN').textContent = CH.nick;
+  chatNick.value = CH.nick; chatRoom.value = CH.room;
+}
+function chatConnect() {
+  if (chatES) chatES.close();
+  chatSeen.clear(); chatLog.innerHTML = '';
+  chatSince = Date.now() / 1000;
+  chatStatus('연결 중…', '#c98a12');
+  chatES = new EventSource(`${CHAT_SERVER}${chatTopic(CH.room)}/sse?since=12h`);
+  chatES.onopen = () => chatStatus('🟢 연결됨', 'var(--accent-d)');
+  chatES.onerror = () => chatStatus('🔴 연결 끊김 — 다시 연결 중…', '#d05050');
+  chatES.onmessage = e => { let m; try { m = JSON.parse(e.data); } catch (_) { return; } if (m.event === 'message') chatAdd(m); };
+}
+function chatAdd(m) {
+  if (chatSeen.has(m.id)) return;
+  chatSeen.add(m.id);
+  let d;
+  try { d = JSON.parse(m.message); } catch (_) { return; }
+  if (!d || typeof d.t !== 'string') return;
+  const mine = d.u === CH.me, nick = String(d.n || '???').slice(0, 12), text = d.t.slice(0, 200);
+  const tm = new Date(m.time * 1000), hm = `${String(tm.getHours()).padStart(2, '0')}:${String(tm.getMinutes()).padStart(2, '0')}`;
+  const div = document.createElement('div');
+  if (d.k === 'join') { div.className = 'cm sys'; div.textContent = `🏝️ ${nick} 님이 들어왔어요 · ${hm}`; }
+  else {
+    div.className = 'cm' + (mine ? ' me' : '');
+    const part = (cls, txt) => { const s = document.createElement('span'); s.className = cls; s.textContent = txt; div.appendChild(s); };
+    part('who', `${d.e === '👧' ? '👧' : '👦'} ${nick}`); part('bub', text); part('tm', hm);
+  }
+  chatLog.appendChild(div);
+  while (chatLog.children.length > 80) chatLog.firstChild.remove();
+  chatLog.scrollTop = chatLog.scrollHeight;
+  if (!mine && m.time >= chatSince - 2) {
+    if (chatEl.classList.contains('hidden')) { chatUnread++; chatBadge(); }
+    toast(d.k === 'join' ? `🏝️ ${nick} 님이 채팅방에 들어왔어요` : `💬 ${nick}: ${text}`);
+  }
+}
+async function chatSend(kind, text) {
+  try {
+    const r = await fetch(CHAT_SERVER + chatTopic(CH.room), {method:'POST',
+      body:JSON.stringify({u:CH.me, n:CH.nick, e:S.char.gender === 'girl' ? '👧' : '👦', k:kind, t:text})});
+    if (r.status === 429) { toast('⚠️ 메시지를 너무 빨리 보냈어요. 잠시 뒤에 다시 보내 주세요'); return false; }
+    if (!r.ok) throw new Error(r.status);
+    return true;
+  } catch (e) { toast('⚠️ 메시지를 못 보냈어요. 인터넷 연결을 확인해 주세요'); return false; }
+}
+function openChat() {
+  chatEl.classList.remove('hidden');
+  chatUnread = 0; chatBadge();
+  (chatMsg.disabled ? chatNick : chatMsg).focus();
+}
+chatBtn.onclick = () => {
+  if (chatEl.classList.contains('hidden')) openChat();
+  else chatEl.classList.add('hidden');
+};
+$('chatJoin').onclick = () => {
+  const nick = chatNick.value.trim(), room = chatRoom.value.trim();
+  if (!nick || !room) { toast('이름과 방 이름을 모두 적어 주세요'); return; }
+  CH.nick = nick.slice(0, 12); CH.room = room.slice(0, 30); saveChat();
+  chatShowSetup(true); chatConnect(); chatSend('join', '');
+  chatMsg.focus();
+};
+chatRoom.addEventListener('keydown', e => { if (e.key === 'Enter') $('chatJoin').click(); });
+$('chatChange').onclick = () => {
+  if (chatES) { chatES.close(); chatES = null; }
+  chatStatus('연결 안 됨', 'var(--muted)');
+  chatShowSetup(false); chatNick.focus();
+};
+$('chatForm').onsubmit = async e => {
+  e.preventDefault();
+  const text = chatMsg.value.trim();
+  if (!text || !chatES) return;
+  if (Date.now() - chatLastSend < 1000) { toast('조금만 천천히 보내 주세요'); return; }
+  chatLastSend = Date.now();
+  chatMsg.value = '';
+  if (!await chatSend('msg', text)) chatMsg.value = text;
+};
+chatShowSetup(!!(CH.nick && CH.room));
+if (CH.nick && CH.room) chatConnect();
+
+// ---------- 루프 ----------
+let last = performance.now();
+function loop(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  update(dt, now);
+  render(now);
+  if (!miniEl.classList.contains('hidden')) { updateMini(dt); drawMini(now); }
+  requestAnimationFrame(loop);
+}
+setInterval(save, 5000);
+addEventListener('beforeunload', save);
+renderInv(); updateHUD();
+if (needCreate) { helpAfterDress = firstRun; openDress('✨ 캐릭터 만들기'); }
+toast('🏝️ 섬에 오신 걸 환영해요!');
+fpNotice();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
